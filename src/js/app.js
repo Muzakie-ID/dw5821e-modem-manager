@@ -15,6 +15,7 @@ const App = (() => {
     Terminal.init();
     Signal.init();
     SMS.init();
+    Dial.init();
 
     // Setup navigation
     setupNavigation();
