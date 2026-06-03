@@ -14,6 +14,7 @@ const App = (() => {
     // Initialize modules
     Terminal.init();
     Signal.init();
+    SMS.init();
 
     // Setup navigation
     setupNavigation();
@@ -63,6 +64,8 @@ const App = (() => {
     // Page-specific initialization
     if (page === 'signal') {
       Signal.resizeCanvas();
+    } else if (page === 'sms') {
+      SMS.onPageActive();
     }
   }
 

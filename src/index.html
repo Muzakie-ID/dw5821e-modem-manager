@@ -75,6 +75,12 @@
           </svg>
           <span>Signal</span>
         </button>
+        <button id="nav-sms" class="nav-item" data-page="sms">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+          </svg>
+          <span>SMS</span>
+        </button>
         <button id="nav-terminal" class="nav-item" data-page="terminal">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <polyline points="4 17 10 11 4 5"/>
@@ -502,6 +508,152 @@
         </div>
       </section>
 
+      <!-- ─── SMS Page ──────────────────────────────────────────────── -->
+      <section id="page-sms" class="page">
+        <div class="page-header">
+          <h1>SMS Messages</h1>
+          <span class="page-subtitle">Send & receive text messages</span>
+          <div class="page-actions">
+            <button id="sms-btn-compose" class="btn btn-primary btn-sm" onclick="SMS.toggleComposer()">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+              </svg>
+              Compose
+            </button>
+          </div>
+        </div>
+
+        <!-- Storage Usage -->
+        <div class="sms-storage-container glass-card">
+          <div class="sms-storage-header">
+            <span>Storage Usage</span>
+            <button class="btn-icon-sm" onclick="SMS.refreshStorage()" title="Refresh storage">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/>
+                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+              </svg>
+            </button>
+          </div>
+          <div class="sms-storage-bars">
+            <div id="sms-storage-read" class="sms-storage-item">
+              <span class="storage-label">SM</span>
+              <div class="storage-bar-track">
+                <div class="storage-fill storage-ok"></div>
+              </div>
+              <span class="storage-text">-- / --</span>
+            </div>
+            <div id="sms-storage-write" class="sms-storage-item">
+              <span class="storage-label">ME</span>
+              <div class="storage-bar-track">
+                <div class="storage-fill storage-ok"></div>
+              </div>
+              <span class="storage-text">-- / --</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Composer (toggleable) -->
+        <div id="sms-composer" class="sms-composer glass-card hidden">
+          <div class="card-header">
+            <h3>Compose Message</h3>
+            <button class="btn-icon" onclick="SMS.toggleComposer()">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+              </svg>
+            </button>
+          </div>
+          <div class="card-body">
+            <div class="sms-composer-form">
+              <div class="form-group">
+                <label for="sms-smsc">SMSC (Service Center)</label>
+                <div class="input-with-btn">
+                  <input type="text" id="sms-smsc" class="input" readonly placeholder="Auto-detected">
+                  <button class="btn btn-sm" onclick="SMS.fetchSmsc()">Fetch</button>
+                </div>
+              </div>
+              <div class="form-group">
+                <label for="sms-recipient">Recipient Number</label>
+                <input type="text" id="sms-recipient" class="input" placeholder="e.g. +628123456789">
+              </div>
+              <div class="form-group">
+                <label for="sms-message">Message</label>
+                <textarea id="sms-message" class="input sms-textarea" rows="4" placeholder="Type your message here..."></textarea>
+                <div id="sms-char-count" class="sms-char-counter">0 / 70 (0 SMS)</div>
+              </div>
+              <div class="sms-composer-actions">
+                <button id="sms-btn-send" class="btn btn-primary" onclick="SMS.sendSms()">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+                  </svg>
+                  Send
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Inbox -->
+        <div class="sms-inbox glass-card">
+          <div class="sms-toolbar">
+            <div class="sms-toolbar-left">
+              <label class="sms-checkbox-cell">
+                <input type="checkbox" id="sms-select-all">
+                <span class="sms-check-mark"></span>
+              </label>
+              <span id="sms-msg-count" class="sms-msg-count">0 messages</span>
+            </div>
+            <div class="sms-toolbar-right">
+              <button id="sms-btn-delete-selected" class="btn btn-danger btn-sm" onclick="SMS.deleteSelected()" disabled>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+                </svg>
+                Delete<span class="sms-delete-count"></span>
+              </button>
+              <button class="btn btn-sm" onclick="SMS.fetchInbox()">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/>
+                  <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+                </svg>
+                Refresh
+              </button>
+            </div>
+          </div>
+          <div id="sms-inbox-loader" class="loading-overlay hidden">
+            <div class="spinner"></div>
+            <span>Loading messages...</span>
+          </div>
+          <div id="sms-inbox-body" class="sms-inbox-body">
+            <div class="sms-empty-state">
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.3">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+              </svg>
+              <span>No messages loaded</span>
+              <span class="text-muted">Connect to modem and navigate to SMS to load inbox</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Message Detail Panel -->
+        <div id="sms-detail-panel" class="sms-detail-panel hidden">
+          <div class="sms-detail-card glass-card">
+            <div class="card-header">
+              <div class="sms-detail-header-info">
+                <h3 id="sms-detail-sender">—</h3>
+                <span id="sms-detail-time" class="text-muted">—</span>
+              </div>
+              <button class="btn-icon" onclick="SMS.closeDetail()">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+              </button>
+            </div>
+            <div class="card-body">
+              <p id="sms-detail-body" class="sms-detail-body">—</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <!-- ─── Terminal Page ───────────────────────────────────────────── -->
       <section id="page-terminal" class="page">
         <div class="page-header">
@@ -665,6 +817,7 @@
   <script src="js/dashboard.js"></script>
   <script src="js/terminal.js"></script>
   <script src="js/network.js"></script>
+  <script src="js/sms.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>

@@ -6,6 +6,7 @@ contextBridge.exposeInMainWorld('modemAPI', {
   connect: (port, baudRate) => ipcRenderer.invoke('serial:connect', port, baudRate),
   disconnect: () => ipcRenderer.invoke('serial:disconnect'),
   sendCommand: (cmd) => ipcRenderer.invoke('serial:send', cmd),
+  sendRaw: (data) => ipcRenderer.invoke('serial:send-raw', data),
   isConnected: () => ipcRenderer.invoke('serial:is-connected'),
 
   // ─── Event Listeners ───────────────────────────────────────────────────────

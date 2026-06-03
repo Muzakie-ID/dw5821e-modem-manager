@@ -213,6 +213,19 @@ ipcMain.handle('serial:send', async (event, command) => {
   });
 });
 
+// Raw write — sends data without appending \r\n (used for SMS PDU payloads + Ctrl+Z)
+ipcMain.handle('serial:send-raw', async (event, data) => {
+  return new Promise((resolve, reject) => {
+    if (!serialPort || !serialPort.isOpen) {
+      reject('Serial port is not connected');
+      return;
+    }
+
+    commandQueue.push({ command: data, callback: resolve, raw: true });
+    processNextCommand();
+  });
+});
+
 ipcMain.handle('serial:is-connected', () => {
   return isConnected && serialPort && serialPort.isOpen;
 });
@@ -222,13 +235,14 @@ ipcMain.handle('serial:is-connected', () => {
 function processNextCommand() {
   if (isProcessingCommand || commandQueue.length === 0) return;
 
-  const { command, callback } = commandQueue.shift();
+  const { command, callback, raw } = commandQueue.shift();
   isProcessingCommand = true;
   currentCommandCallback = callback;
   responseBuffer = [];
 
-  // Send command
-  serialPort.write(command + '\r\n', (err) => {
+  // Send command — raw mode skips \r\n (used for SMS PDU payloads)
+  const payload = raw ? command : command + '\r\n';
+  serialPort.write(payload, (err) => {
     if (err) {
       console.error('Write error:', err);
       isProcessingCommand = false;
