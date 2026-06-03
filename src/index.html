@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DW5821e Modem Manager</title>
+  <meta name="description" content="Dell DW5821e Modem Manager — Premium desktop interface for managing your LTE modem">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <!-- ─── Custom Title Bar ─────────────────────────────────────────────────── -->
+  <header id="titlebar" class="titlebar">
+    <div class="titlebar-drag">
+      <div class="titlebar-logo">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M2 12C2 6.48 6.48 2 12 2s10 4.48 10 10-4.48 10-10 10S2 17.52 2 12z"/>
+          <path d="M12 6v6l4 2"/>
+          <circle cx="12" cy="12" r="1" fill="currentColor"/>
+          <path d="M8 2.5A10 10 0 0 0 2.5 8" stroke-dasharray="2 2"/>
+          <path d="M16 21.5A10 10 0 0 0 21.5 16" stroke-dasharray="2 2"/>
+        </svg>
+        <span class="titlebar-title">DW5821e Modem Manager</span>
+      </div>
+    </div>
+    <div class="titlebar-controls">
+      <button id="btn-minimize" class="titlebar-btn" onclick="window.modemAPI.minimize()">
+        <svg width="12" height="12" viewBox="0 0 12 12"><rect y="5" width="12" height="2" fill="currentColor"/></svg>
+      </button>
+      <button id="btn-maximize" class="titlebar-btn" onclick="window.modemAPI.maximize()">
+        <svg width="12" height="12" viewBox="0 0 12 12"><rect x="1" y="1" width="10" height="10" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>
+      </button>
+      <button id="btn-close" class="titlebar-btn titlebar-btn-close" onclick="window.modemAPI.close()">
+        <svg width="12" height="12" viewBox="0 0 12 12"><path d="M1 1l10 10M11 1L1 11" stroke="currentColor" stroke-width="1.5"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- ─── Main Layout ──────────────────────────────────────────────────────── -->
+  <div class="app-layout">
+
+    <!-- ─── Sidebar ──────────────────────────────────────────────────────── -->
+    <aside id="sidebar" class="sidebar">
+      <!-- Connection Status -->
+      <div class="sidebar-connection">
+        <div id="connection-indicator" class="connection-dot disconnected"></div>
+        <span id="connection-text" class="connection-text">Disconnected</span>
+      </div>
+
+      <!-- Navigation -->
+      <nav class="sidebar-nav">
+        <button id="nav-dashboard" class="nav-item active" data-page="dashboard">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="3" width="7" height="7" rx="1"/>
+            <rect x="14" y="3" width="7" height="7" rx="1"/>
+            <rect x="3" y="14" width="7" height="7" rx="1"/>
+            <rect x="14" y="14" width="7" height="7" rx="1"/>
+          </svg>
+          <span>Dashboard</span>
+        </button>
+        <button id="nav-network" class="nav-item" data-page="network">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M5 12.55a11 11 0 0 1 14.08 0"/>
+            <path d="M1.42 9a16 16 0 0 1 21.16 0"/>
+            <path d="M8.53 16.11a6 6 0 0 1 6.95 0"/>
+            <circle cx="12" cy="20" r="1" fill="currentColor"/>
+          </svg>
+          <span>Network</span>
+        </button>
+        <button id="nav-signal" class="nav-item" data-page="signal">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+          </svg>
+          <span>Signal</span>
+        </button>
+        <button id="nav-terminal" class="nav-item" data-page="terminal">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="4 17 10 11 4 5"/>
+            <line x1="12" y1="19" x2="20" y2="19"/>
+          </svg>
+          <span>Terminal</span>
+        </button>
+        <button id="nav-device" class="nav-item" data-page="device">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="2" y="3" width="20" height="14" rx="2"/>
+            <path d="M8 21h8"/>
+            <path d="M12 17v4"/>
+          </svg>
+          <span>Device</span>
+        </button>
+      </nav>
+
+      <!-- Connect Button -->
+      <div class="sidebar-bottom">
+        <button id="btn-connect-sidebar" class="btn-connect" onclick="App.toggleConnectionPanel()">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18.36 6.64a9 9 0 1 1-12.73 0"/>
+            <line x1="12" y1="2" x2="12" y2="12"/>
+          </svg>
+          <span>Connect</span>
+        </button>
+      </div>
+    </aside>
+
+    <!-- ─── Main Content ─────────────────────────────────────────────────── -->
+    <main id="main-content" class="main-content">
+
+      <!-- ─── Connection Panel (Overlay) ──────────────────────────────── -->
+      <div id="connection-panel" class="connection-panel hidden">
+        <div class="panel-card glass-card">
+          <div class="panel-header">
+            <h2>Connect to Modem</h2>
+            <button id="btn-close-panel" class="btn-icon" onclick="App.toggleConnectionPanel()">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+              </svg>
+            </button>
+          </div>
+          <div class="panel-body">
+            <div class="form-group">
+              <label for="port-select">COM Port</label>
+              <div class="select-wrapper">
+                <select id="port-select">
+                  <option value="">Select COM Port...</option>
+                </select>
+                <button id="btn-refresh-ports" class="btn-icon-sm" onclick="App.refreshPorts()" title="Refresh ports">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/>
+                    <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+                  </svg>
+                </button>
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="baud-select">Baud Rate</label>
+              <select id="baud-select">
+                <option value="9600">9600</option>
+                <option value="19200">19200</option>
+                <option value="38400">38400</option>
+                <option value="57600">57600</option>
+                <option value="115200" selected>115200</option>
+                <option value="230400">230400</option>
+                <option value="460800">460800</option>
+                <option value="921600">921600</option>
+              </select>
+            </div>
+            <div class="port-info" id="port-info" style="display:none;">
+              <div class="port-info-item"><span>Manufacturer:</span><span id="port-manufacturer">-</span></div>
+              <div class="port-info-item"><span>Vendor ID:</span><span id="port-vendor-id">-</span></div>
+              <div class="port-info-item"><span>Product ID:</span><span id="port-product-id">-</span></div>
+            </div>
+            <div class="panel-actions">
+              <button id="btn-connect" class="btn btn-primary" onclick="App.connect()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M5 12h14"/><path d="M12 5l7 7-7 7"/>
+                </svg>
+                Connect
+              </button>
+              <button id="btn-disconnect" class="btn btn-danger hidden" onclick="App.disconnect()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><line x1="12" y1="2" x2="12" y2="12"/>
+                </svg>
+                Disconnect
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ─── Dashboard Page ──────────────────────────────────────────── -->
+      <section id="page-dashboard" class="page active">
+        <div class="page-header">
+          <h1>Dashboard</h1>
+          <span class="page-subtitle">Modem overview & status</span>
+        </div>
+
+        <div class="dashboard-grid">
+          <!-- Signal Strength Card -->
+          <div class="card glass-card card-signal">
+            <div class="card-header">
+              <h3>Signal Strength</h3>
+              <div id="signal-badge" class="badge badge-gray">N/A</div>
+            </div>
+            <div class="card-body">
+              <div class="signal-gauge-container">
+                <div class="signal-gauge">
+                  <svg viewBox="0 0 200 120" class="gauge-svg">
+                    <defs>
+                      <linearGradient id="gaugeGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                        <stop offset="0%" style="stop-color:#ef4444"/>
+                        <stop offset="33%" style="stop-color:#f59e0b"/>
+                        <stop offset="66%" style="stop-color:#22c55e"/>
+                        <stop offset="100%" style="stop-color:#00d4ff"/>
+                      </linearGradient>
+                    </defs>
+                    <path d="M 20 100 A 80 80 0 0 1 180 100" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="12" stroke-linecap="round"/>
+                    <path id="gauge-fill" d="M 20 100 A 80 80 0 0 1 180 100" fill="none" stroke="url(#gaugeGradient)" stroke-width="12" stroke-linecap="round" stroke-dasharray="251.2" stroke-dashoffset="251.2"/>
+                    <text id="gauge-value" x="100" y="85" text-anchor="middle" class="gauge-text">--</text>
+                    <text id="gauge-unit" x="100" y="105" text-anchor="middle" class="gauge-unit">dBm</text>
+                  </svg>
+                </div>
+                <div class="signal-bars">
+                  <div class="bar" id="bar-1"></div>
+                  <div class="bar" id="bar-2"></div>
+                  <div class="bar" id="bar-3"></div>
+                  <div class="bar" id="bar-4"></div>
+                  <div class="bar" id="bar-5"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Network Info Card -->
+          <div class="card glass-card card-network">
+            <div class="card-header">
+              <h3>Network</h3>
+              <div id="network-badge" class="badge badge-gray">Unknown</div>
+            </div>
+            <div class="card-body">
+              <div class="info-list">
+                <div class="info-item">
+                  <span class="info-label">Operator</span>
+                  <span id="dash-operator" class="info-value">--</span>
+                </div>
+                <div class="info-item">
+                  <span class="info-label">Registration</span>
+                  <span id="dash-registration" class="info-value">--</span>
+                </div>
+                <div class="info-item">
+                  <span class="info-label">Network Type</span>
+                  <span id="dash-network-type" class="info-value">--</span>
+                </div>
+                <div class="info-item">
+                  <span class="info-label">APN</span>
+                  <span id="dash-apn" class="info-value">--</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- SIM Card Card -->
+          <div class="card glass-card card-sim">
+            <div class="card-header">
+              <h3>SIM Card</h3>
+              <div id="sim-badge" class="badge badge-gray">Unknown</div>
+            </div>
+            <div class="card-body">
+              <div class="info-list">
+                <div class="info-item">
+                  <span class="info-label">Status</span>
+                  <span id="dash-sim-status" class="info-value">--</span>
+                </div>
+                <div class="info-item">
+                  <span class="info-label">IMSI</span>
+                  <span id="dash-imsi" class="info-value">--</span>
+                </div>
+                <div class="info-item">
+                  <span class="info-label">ICCID</span>
+                  <span id="dash-iccid" class="info-value">--</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Device Info Card -->
+          <div class="card glass-card card-device">
+            <div class="card-header">
+              <h3>Device</h3>
+              <div id="device-badge" class="badge badge-blue">DW5821e</div>
+            </div>
+            <div class="card-body">
+              <div class="info-list">
+                <div class="info-item">
+                  <span class="info-label">Model</span>
+                  <span id="dash-model" class="info-value">--</span>
+                </div>
+                <div class="info-item">
+                  <span class="info-label">IMEI</span>
+                  <span id="dash-imei" class="info-value">--</span>
+                </div>
+                <div class="info-item">
+                  <span class="info-label">Firmware</span>
+                  <span id="dash-firmware" class="info-value">--</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Quick Actions Card -->
+          <div class="card glass-card card-actions">
+            <div class="card-header">
+              <h3>Quick Actions</h3>
+            </div>
+            <div class="card-body">
+              <div class="quick-actions-grid">
+                <button id="btn-refresh-info" class="action-btn" onclick="Dashboard.refreshAll()">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/>
+                    <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+                  </svg>
+                  <span>Refresh All</span>
+                </button>
+                <button id="btn-toggle-radio" class="action-btn" onclick="Dashboard.toggleRadio()">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M5 12.55a11 11 0 0 1 14.08 0"/>
+                    <path d="M1.42 9a16 16 0 0 1 21.16 0"/>
+                    <path d="M8.53 16.11a6 6 0 0 1 6.95 0"/>
+                    <circle cx="12" cy="20" r="1" fill="currentColor"/>
+                  </svg>
+                  <span>Toggle Radio</span>
+                </button>
+                <button id="btn-restart-modem" class="action-btn" onclick="Dashboard.restartModem()">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><line x1="12" y1="2" x2="12" y2="12"/>
+                  </svg>
+                  <span>Restart Modem</span>
+                </button>
+                <button id="btn-scan-networks" class="action-btn" onclick="Network.scanOperators()">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                  </svg>
+                  <span>Scan Networks</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ─── Network Page ────────────────────────────────────────────── -->
+      <section id="page-network" class="page">
+        <div class="page-header">
+          <h1>Network Settings</h1>
+          <span class="page-subtitle">APN, operator, and band configuration</span>
+        </div>
+
+        <div class="network-grid">
+          <!-- APN Configuration -->
+          <div class="card glass-card">
+            <div class="card-header">
+              <h3>APN Configuration</h3>
+            </div>
+            <div class="card-body">
+              <div class="form-group">
+                <label for="apn-current">Current APN</label>
+                <div class="input-with-btn">
+                  <input type="text" id="apn-current" class="input" readonly placeholder="Not connected">
+                  <button id="btn-read-apn" class="btn btn-sm" onclick="Network.readAPN()">Read</button>
+                </div>
+              </div>
+              <div class="form-group">
+                <label for="apn-input">Set APN</label>
+                <div class="input-with-btn">
+                  <input type="text" id="apn-input" class="input" placeholder="e.g. internet">
+                  <button id="btn-set-apn" class="btn btn-primary btn-sm" onclick="Network.setAPN()">Apply</button>
+                </div>
+              </div>
+              <div class="form-group">
+                <label for="apn-pdp-type">PDP Type</label>
+                <select id="apn-pdp-type" class="input">
+                  <option value="IP">IPv4</option>
+                  <option value="IPV6">IPv6</option>
+                  <option value="IPV4V6">IPv4v6 (Dual)</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- Operator Selection -->
+          <div class="card glass-card">
+            <div class="card-header">
+              <h3>Operator Selection</h3>
+              <button id="btn-scan-ops" class="btn btn-sm" onclick="Network.scanOperators()">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                </svg>
+                Scan
+              </button>
+            </div>
+            <div class="card-body">
+              <div class="form-group">
+                <label>Current Operator</label>
+                <input type="text" id="current-operator" class="input" readonly placeholder="Not connected">
+              </div>
+              <div class="form-group">
+                <label>Mode</label>
+                <select id="operator-mode" class="input">
+                  <option value="0">Automatic</option>
+                  <option value="1">Manual</option>
+                </select>
+              </div>
+              <div id="operator-list" class="operator-list">
+                <p class="text-muted">Click "Scan" to search for available operators</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Radio Control -->
+          <div class="card glass-card">
+            <div class="card-header">
+              <h3>Radio Control</h3>
+            </div>
+            <div class="card-body">
+              <div class="radio-control">
+                <div class="radio-status">
+                  <span class="info-label">Radio Status</span>
+                  <div id="radio-status-indicator" class="status-pill status-unknown">Unknown</div>
+                </div>
+                <div class="radio-actions">
+                  <button id="btn-radio-on" class="btn btn-primary" onclick="Network.setRadio(1)">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M5 12.55a11 11 0 0 1 14.08 0"/>
+                      <circle cx="12" cy="20" r="1" fill="currentColor"/>
+                    </svg>
+                    Enable Radio
+                  </button>
+                  <button id="btn-radio-off" class="btn btn-outline" onclick="Network.setRadio(0)">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <line x1="1" y1="1" x2="23" y2="23"/>
+                      <path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55"/>
+                      <path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39"/>
+                    </svg>
+                    Disable Radio
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Band Selection -->
+          <div class="card glass-card card-full-width">
+            <div class="card-header">
+              <h3>Band Configuration</h3>
+              <button id="btn-read-bands" class="btn btn-sm" onclick="Network.readBands()">Read Bands</button>
+            </div>
+            <div class="card-body">
+              <div id="band-info" class="band-info">
+                <p class="text-muted">Connect to modem and click "Read Bands" to view current band configuration</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ─── Signal Page ─────────────────────────────────────────────── -->
+      <section id="page-signal" class="page">
+        <div class="page-header">
+          <h1>Signal Monitor</h1>
+          <span class="page-subtitle">Real-time signal quality tracking</span>
+          <div class="page-actions">
+            <label class="toggle-label">
+              <input type="checkbox" id="signal-auto-refresh" onchange="Signal.toggleAutoRefresh(this.checked)">
+              <span class="toggle-slider"></span>
+              <span>Auto Refresh</span>
+            </label>
+            <select id="signal-interval" class="input input-sm" onchange="Signal.setInterval(this.value)">
+              <option value="2000">2s</option>
+              <option value="3000">3s</option>
+              <option value="5000" selected>5s</option>
+              <option value="10000">10s</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="signal-grid">
+          <!-- Signal Metrics -->
+          <div class="signal-metrics">
+            <div class="metric-card glass-card">
+              <div class="metric-label">RSSI</div>
+              <div id="metric-rssi" class="metric-value">--</div>
+              <div class="metric-unit">dBm</div>
+            </div>
+            <div class="metric-card glass-card">
+              <div class="metric-label">RSRP</div>
+              <div id="metric-rsrp" class="metric-value">--</div>
+              <div class="metric-unit">dBm</div>
+            </div>
+            <div class="metric-card glass-card">
+              <div class="metric-label">RSRQ</div>
+              <div id="metric-rsrq" class="metric-value">--</div>
+              <div class="metric-unit">dB</div>
+            </div>
+            <div class="metric-card glass-card">
+              <div class="metric-label">SINR</div>
+              <div id="metric-sinr" class="metric-value">--</div>
+              <div class="metric-unit">dB</div>
+            </div>
+          </div>
+
+          <!-- Signal Chart -->
+          <div class="card glass-card card-chart">
+            <div class="card-header">
+              <h3>Signal History</h3>
+              <button id="btn-clear-chart" class="btn btn-sm" onclick="Signal.clearChart()">Clear</button>
+            </div>
+            <div class="card-body chart-container">
+              <canvas id="signal-chart"></canvas>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ─── Terminal Page ───────────────────────────────────────────── -->
+      <section id="page-terminal" class="page">
+        <div class="page-header">
+          <h1>AT Command Terminal</h1>
+          <span class="page-subtitle">Send AT commands directly to modem</span>
+          <div class="page-actions">
+            <button id="btn-clear-terminal" class="btn btn-sm" onclick="Terminal.clear()">Clear</button>
+          </div>
+        </div>
+
+        <!-- Quick Commands -->
+        <div class="quick-commands glass-card">
+          <div class="quick-commands-header">
+            <span>Quick Commands</span>
+          </div>
+          <div class="quick-commands-list">
+            <button class="quick-cmd" onclick="Terminal.sendQuick('AT')">AT</button>
+            <button class="quick-cmd" onclick="Terminal.sendQuick('ATI')">ATI</button>
+            <button class="quick-cmd" onclick="Terminal.sendQuick('AT+CSQ')">Signal</button>
+            <button class="quick-cmd" onclick="Terminal.sendQuick('AT+CREG?')">Reg Status</button>
+            <button class="quick-cmd" onclick="Terminal.sendQuick('AT+COPS?')">Operator</button>
+            <button class="quick-cmd" onclick="Terminal.sendQuick('AT+CPIN?')">SIM Status</button>
+            <button class="quick-cmd" onclick="Terminal.sendQuick('AT+CGSN')">IMEI</button>
+            <button class="quick-cmd" onclick="Terminal.sendQuick('AT+CIMI')">IMSI</button>
+            <button class="quick-cmd" onclick="Terminal.sendQuick('AT+CGDCONT?')">APN</button>
+            <button class="quick-cmd" onclick="Terminal.sendQuick('AT+CGMR')">Firmware</button>
+            <button class="quick-cmd" onclick="Terminal.sendQuick('AT+CFUN?')">Radio</button>
+            <button class="quick-cmd" onclick="Terminal.sendQuick('AT+CGMM')">Model</button>
+          </div>
+        </div>
+
+        <!-- Terminal Output -->
+        <div class="terminal-container glass-card">
+          <div id="terminal-output" class="terminal-output">
+            <div class="terminal-welcome">
+              <span class="terminal-accent">DW5821e Terminal</span> — Ready
+              <br>Type an AT command below or use Quick Commands above.
+              <br>Connect to modem first using the sidebar button.
+            </div>
+          </div>
+          <div class="terminal-input-container">
+            <span class="terminal-prompt">AT&gt;</span>
+            <input type="text" id="terminal-input" class="terminal-input" placeholder="Enter AT command..." autocomplete="off" spellcheck="false">
+            <button id="btn-send-cmd" class="btn btn-primary btn-sm" onclick="Terminal.send()">Send</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ─── Device Page ─────────────────────────────────────────────── -->
+      <section id="page-device" class="page">
+        <div class="page-header">
+          <h1>Device Information</h1>
+          <span class="page-subtitle">Modem hardware & firmware details</span>
+          <div class="page-actions">
+            <button id="btn-refresh-device" class="btn btn-primary btn-sm" onclick="Dashboard.refreshDeviceInfo()">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/>
+                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+              </svg>
+              Refresh
+            </button>
+          </div>
+        </div>
+
+        <div class="device-grid">
+          <div class="card glass-card">
+            <div class="card-header"><h3>Hardware</h3></div>
+            <div class="card-body">
+              <div class="info-list">
+                <div class="info-item">
+                  <span class="info-label">Manufacturer</span>
+                  <span id="dev-manufacturer" class="info-value monospace">--</span>
+                </div>
+                <div class="info-item">
+                  <span class="info-label">Model</span>
+                  <span id="dev-model" class="info-value monospace">--</span>
+                </div>
+                <div class="info-item">
+                  <span class="info-label">Chipset</span>
+                  <span class="info-value">Qualcomm Snapdragon X20 LTE</span>
+                </div>
+                <div class="info-item">
+                  <span class="info-label">Category</span>
+                  <span class="info-value">LTE Cat 16</span>
+                </div>
+                <div class="info-item">
+                  <span class="info-label">Max Download</span>
+                  <span class="info-value">1 Gbps</span>
+                </div>
+                <div class="info-item">
+                  <span class="info-label">Max Upload</span>
+                  <span class="info-value">150 Mbps</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card glass-card">
+            <div class="card-header"><h3>Identity</h3></div>
+            <div class="card-body">
+              <div class="info-list">
+                <div class="info-item">
+                  <span class="info-label">IMEI</span>
+                  <span id="dev-imei" class="info-value monospace">--</span>
+                </div>
+                <div class="info-item">
+                  <span class="info-label">IMSI</span>
+                  <span id="dev-imsi" class="info-value monospace">--</span>
+                </div>
+                <div class="info-item">
+                  <span class="info-label">ICCID</span>
+                  <span id="dev-iccid" class="info-value monospace">--</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card glass-card">
+            <div class="card-header"><h3>Firmware</h3></div>
+            <div class="card-body">
+              <div class="info-list">
+                <div class="info-item">
+                  <span class="info-label">Version</span>
+                  <span id="dev-firmware" class="info-value monospace">--</span>
+                </div>
+                <div class="info-item">
+                  <span class="info-label">Protocol</span>
+                  <span class="info-value">MBIM / QMI</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card glass-card">
+            <div class="card-header"><h3>SIM Card</h3></div>
+            <div class="card-body">
+              <div class="info-list">
+                <div class="info-item">
+                  <span class="info-label">Status</span>
+                  <span id="dev-sim-status" class="info-value">--</span>
+                </div>
+                <div class="info-item">
+                  <span class="info-label">PIN Required</span>
+                  <span id="dev-pin-status" class="info-value">--</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- ─── Toast Notification ──────────────────────────────────────────────── -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <!-- ─── Scripts ─────────────────────────────────────────────────────────── -->
+  <script src="js/utils.js"></script>
+  <script src="js/signal.js"></script>
+  <script src="js/dashboard.js"></script>
+  <script src="js/terminal.js"></script>
+  <script src="js/network.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
