@@ -38,8 +38,32 @@ const Dashboard = (() => {
    */
   async function refreshSignalInfo() {
     try {
-      const response = await window.modemAPI.sendCommand('AT+CSQ');
-      const parsed = Utils.parseCSQ(response);
+      let parsed = null;
+      try {
+        const debugResp = await window.modemAPI.sendCommand('AT^DEBUG?');
+        if (debugResp && !Utils.isError(debugResp)) {
+          parsed = Utils.parseDebugSignal(debugResp);
+        }
+      } catch (e) {
+        console.log('AT^DEBUG? failed, trying CSQ/CESQ...', e);
+      }
+
+      if (!parsed || parsed.dbm === null || parsed.rsrp === null) {
+        const csqResp = await window.modemAPI.sendCommand('AT+CSQ');
+        const csqParsed = Utils.parseCSQ(csqResp);
+
+        const cesqResp = await window.modemAPI.sendCommand('AT+CESQ');
+        const cesqParsed = Utils.parseCESQ(cesqResp);
+
+        parsed = {
+          dbm: csqParsed ? csqParsed.dbm : null,
+          rssi: csqParsed ? csqParsed.rssi : null,
+          rsrp: cesqParsed ? cesqParsed.rsrpDbm : null,
+          rsrq: cesqParsed ? cesqParsed.rsrqDb : null,
+          sinr: parsed ? parsed.sinr : null
+        };
+      }
+
       if (parsed) {
         updateSignal(parsed);
       }
@@ -86,7 +110,15 @@ const Dashboard = (() => {
     }
 
     // Update signal metrics page
-    document.getElementById('metric-rssi').textContent = dbm !== null ? dbm : '--';
+    const rssiEl = document.getElementById('metric-rssi');
+    const rsrpEl = document.getElementById('metric-rsrp');
+    const rsrqEl = document.getElementById('metric-rsrq');
+    const sinrEl = document.getElementById('metric-sinr');
+
+    if (rssiEl) rssiEl.textContent = dbm !== null ? dbm : '--';
+    if (rsrpEl) rsrpEl.textContent = csqData.rsrp !== null && csqData.rsrp !== undefined ? csqData.rsrp : '--';
+    if (rsrqEl) rsrqEl.textContent = csqData.rsrq !== null && csqData.rsrq !== undefined ? csqData.rsrq : '--';
+    if (sinrEl) sinrEl.textContent = csqData.sinr !== null && csqData.sinr !== undefined ? csqData.sinr : '--';
   }
 
   /**

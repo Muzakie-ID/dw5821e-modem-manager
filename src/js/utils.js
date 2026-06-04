@@ -45,6 +45,77 @@ const Utils = (() => {
   }
 
   /**
+   * Parse AT+CESQ response
+   * Input: "+CESQ: 99,99,255,255,20,56"
+   */
+  function parseCESQ(response) {
+    const match = response.match(/\+CESQ:\s*(\d+),(\d+),(\d+),(\d+),(\d+),(\d+)/);
+    if (!match) return null;
+    
+    const rxlev = parseInt(match[1]);
+    const ber = parseInt(match[2]);
+    const rscp = parseInt(match[3]);
+    const ecno = parseInt(match[4]);
+    const rsrq = parseInt(match[5]);
+    const rsrp = parseInt(match[6]);
+    
+    let rsrqDb = null;
+    if (rsrq !== 255) {
+      if (rsrq === 0) rsrqDb = -20;
+      else if (rsrq === 34) rsrqDb = -3;
+      else rsrqDb = -19.5 + (rsrq * 0.5);
+    }
+    
+    let rsrpDbm = null;
+    if (rsrp !== 255) {
+      if (rsrp === 0) rsrpDbm = -140;
+      else if (rsrp === 97) rsrpDbm = -44;
+      else rsrpDbm = -140 + rsrp;
+    }
+    
+    return {
+      rxlev,
+      ber,
+      rscp,
+      ecno,
+      rsrq,
+      rsrp,
+      rsrqDb,
+      rsrpDbm
+    };
+  }
+
+  /**
+   * Parse AT^DEBUG? response containing signal metrics
+   */
+  function parseDebugSignal(response) {
+    if (!response || isError(response)) return null;
+
+    const rsrpMatch = response.match(/(?:RSRP|rsrp)[:\s\-=]+(-?\d+)/i);
+    const rsrqMatch = response.match(/(?:RSRQ|rsrq)[:\s\-=]+(-?\d+)/i);
+    const sinrMatch = response.match(/(?:SINR|sinr|RS-SINR|rs-sinr)[:\s\-=]+(-?\d+(?:\.\d+)?)/i);
+    const rssiMatch = response.match(/(?:RSSI|rssi)[:\s\-=]+(-?\d+)/i);
+
+    const rsrp = rsrpMatch ? parseInt(rsrpMatch[1]) : null;
+    const rsrq = rsrqMatch ? parseInt(rsrqMatch[1]) : null;
+    const sinr = sinrMatch ? parseFloat(sinrMatch[1]) : null;
+    let dbm = rssiMatch ? parseInt(rssiMatch[1]) : null;
+    
+    if (dbm !== null && dbm >= 0 && dbm <= 31) {
+      dbm = rssiToDbm(dbm);
+    }
+
+    return {
+      dbm,
+      rssi: rssiMatch ? parseInt(rssiMatch[1]) : null,
+      rsrp,
+      rsrq,
+      sinr
+    };
+  }
+
+  /**
+
    * Parse AT+CREG? response
    * Input: "+CREG: 0,1" → { mode: 0, stat: 1, statText: 'Registered, Home' }
    */
@@ -236,6 +307,8 @@ const Utils = (() => {
     rssiToDbm,
     getSignalQuality,
     parseCSQ,
+    parseCESQ,
+    parseDebugSignal,
     parseCREG,
     parseCOPS,
     parseCOPSScan,

@@ -190,12 +190,45 @@ const Signal = (() => {
       const connected = await window.modemAPI.isConnected();
       if (!connected) return;
 
-      const response = await window.modemAPI.sendCommand('AT+CSQ');
-      const parsed = Utils.parseCSQ(response);
+      // Try AT^DEBUG? first
+      let parsed = null;
+      try {
+        const debugResp = await window.modemAPI.sendCommand('AT^DEBUG?');
+        if (debugResp && !Utils.isError(debugResp)) {
+          parsed = Utils.parseDebugSignal(debugResp);
+        }
+      } catch (e) {
+        console.log('AT^DEBUG? failed, trying CSQ/CESQ...', e);
+      }
+
+      // Fallback/Supplement with CSQ/CESQ if debug query failed or returned incomplete data
+      if (!parsed || parsed.dbm === null || parsed.rsrp === null) {
+        const csqResp = await window.modemAPI.sendCommand('AT+CSQ');
+        const csqParsed = Utils.parseCSQ(csqResp);
+
+        const cesqResp = await window.modemAPI.sendCommand('AT+CESQ');
+        const cesqParsed = Utils.parseCESQ(cesqResp);
+
+        parsed = {
+          dbm: csqParsed ? csqParsed.dbm : null,
+          rssi: csqParsed ? csqParsed.rssi : null,
+          rsrp: cesqParsed ? cesqParsed.rsrpDbm : null,
+          rsrq: cesqParsed ? cesqParsed.rsrqDb : null,
+          sinr: parsed ? parsed.sinr : null
+        };
+      }
 
       if (parsed && parsed.dbm !== null) {
         // Update metrics
-        document.getElementById('metric-rssi').textContent = parsed.dbm;
+        const rssiEl = document.getElementById('metric-rssi');
+        const rsrpEl = document.getElementById('metric-rsrp');
+        const rsrqEl = document.getElementById('metric-rsrq');
+        const sinrEl = document.getElementById('metric-sinr');
+
+        if (rssiEl) rssiEl.textContent = parsed.dbm;
+        if (rsrpEl) rsrpEl.textContent = parsed.rsrp !== null ? parsed.rsrp : '--';
+        if (rsrqEl) rsrqEl.textContent = parsed.rsrq !== null ? parsed.rsrq : '--';
+        if (sinrEl) sinrEl.textContent = parsed.sinr !== null ? parsed.sinr : '--';
         
         // Add to chart
         addDataPoint(parsed.dbm);
