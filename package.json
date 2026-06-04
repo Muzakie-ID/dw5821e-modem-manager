@@ -1,6 +1,6 @@
 {
   "name": "dell-dw5821e-manager",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Dell DW5821e Modem Manager — Premium Desktop UI",
   "main": "main.js",
   "scripts": {
