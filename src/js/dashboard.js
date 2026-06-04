@@ -296,7 +296,11 @@ const Dashboard = (() => {
       const tempResp = await window.modemAPI.sendCommand('AT^TEMP?');
       if (tempResp && !Utils.isError(tempResp)) {
         const temp = Utils.parseDellTemp(tempResp);
-        if (temp !== null) document.getElementById('dev-temp').textContent = `${temp} °C`;
+        if (temp !== null) {
+          document.getElementById('dev-temp').textContent = `${temp} °C`;
+          const dashTemp = document.getElementById('dash-temp');
+          if (dashTemp) dashTemp.textContent = `${temp} °C`;
+        }
       }
 
       // Voltage

@@ -431,13 +431,26 @@ const Utils = (() => {
   // ─── Dell DW5821e Specific Parsers ──────────────────────────────────────────
 
   function parseDellTemp(response) {
-    const match = response.match(/\^TEMP:\s*([\d.-]+)/);
-    return match ? parseFloat(match[1]) : null;
+    const clean = cleanResponse(response);
+    if (!clean) return null;
+    
+    // Check for multi-value Dell format: PA: 39C \n TSENS: 44C
+    const paMatch = clean.match(/PA:\s*([\d.-]+)/i);
+    const tsMatch = clean.match(/TSENS:\s*([\d.-]+)/i);
+    if (paMatch && tsMatch) {
+      return `${paMatch[1]}, ${tsMatch[1]}`;
+    }
+
+    let match = clean.match(/(?:\^TEMP|\+QTEMP|Temperature|Temp|T)[:=\s]*([\d.-]+)/i);
+    if (!match) match = clean.match(/([\d.-]+)/);
+    return match ? match[1] : null;
   }
 
   function parseDellVolt(response) {
-    // AT+VOLT usually returns +VOLT: <value> or similar
-    const match = response.match(/\+VOLT:\s*([\d.-]+)/);
+    const clean = cleanResponse(response);
+    if (!clean) return null;
+    let match = clean.match(/(?:\+VOLT|\^VOLT|Voltage|Volt|V)[:=\s]*([\d.-]+)/i);
+    if (!match) match = clean.match(/([\d.-]+)/);
     return match ? match[1] : null;
   }
 
