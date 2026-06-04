@@ -4,6 +4,20 @@ Aplikasi desktop premium berbasis **Electron** untuk mengelola dan memantau mode
 
 ---
 
+## 📸 Screenshots
+
+<p align="center">
+  <img src="screenshoot/Screenshot%202026-06-04%20212855.png" width="800" alt="Dashboard View">
+</p>
+<p align="center">
+  <img src="screenshoot/Screenshot%202026-06-04%20212910.png" width="800" alt="Network & Signal View">
+</p>
+<p align="center">
+  <img src="screenshoot/Screenshot%202026-06-04%20212918.png" width="800" alt="AT Terminal View">
+</p>
+
+---
+
 ## 🌟 Fitur Utama
 
 - **Dashboard Real-Time**: Visualisasi kekuatan sinyal (gauge meter & chart) beserta informasi operator, tipe jaringan, IMEI, IMSI, status SIM card, dan registrasi jaringan.
