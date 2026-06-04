@@ -441,15 +441,124 @@
             </div>
           </div>
 
-          <!-- Band Selection -->
-          <div class="card glass-card card-full-width">
+          <!-- Band Lock -->
+          <div class="card glass-card card-full-width band-lock-section">
             <div class="card-header">
-              <h3>Band Configuration</h3>
-              <button id="btn-read-bands" class="btn btn-sm" onclick="Network.readBands()">Read Bands</button>
+              <div class="band-lock-title">
+                <h3>Band Lock</h3>
+                <div id="band-lock-badge" class="badge badge-gray">Unlocked</div>
+              </div>
+              <div class="band-header-actions">
+                <button id="btn-read-bands" class="btn btn-sm" onclick="Network.readCurrentBands()">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/>
+                    <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+                  </svg>
+                  Read Current
+                </button>
+                <button id="btn-reset-bands" class="btn btn-sm" onclick="Network.resetAllBands()">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+                    <path d="M3 3v5h5"/>
+                  </svg>
+                  Reset All
+                </button>
+              </div>
             </div>
             <div class="card-body">
-              <div id="band-info" class="band-info">
-                <p class="text-muted">Connect to modem and click "Read Bands" to view current band configuration</p>
+              <!-- Band Toolbar -->
+              <div class="band-toolbar">
+                <div class="band-toolbar-left">
+                  <button class="btn btn-sm btn-outline" onclick="Network.toggleAllBands(true)">Select All</button>
+                  <button class="btn btn-sm btn-outline" onclick="Network.toggleAllBands(false)">Deselect All</button>
+                </div>
+                <div class="band-toolbar-right">
+                  <div class="form-group-inline">
+                    <label for="band-rat-mode">RAT Mode</label>
+                    <select id="band-rat-mode" class="input input-sm">
+                      <option value="2">Auto (LTE Preferred)</option>
+                      <option value="14">LTE Only</option>
+                      <option value="13">3G Only</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <!-- LTE Bands -->
+              <div class="band-group">
+                <div class="band-group-header">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M5 12.55a11 11 0 0 1 14.08 0"/>
+                    <path d="M1.42 9a16 16 0 0 1 21.16 0"/>
+                    <path d="M8.53 16.11a6 6 0 0 1 6.95 0"/>
+                    <circle cx="12" cy="20" r="1" fill="currentColor"/>
+                  </svg>
+                  <span>LTE Bands</span>
+                  <span id="lte-band-count" class="band-count">0 / 27 selected</span>
+                </div>
+                <div id="lte-band-grid" class="band-grid">
+                  <label class="band-checkbox-item" data-band="1" data-type="lte"><input type="checkbox" value="1"><span class="band-check-mark"></span><span class="band-label">B1<small>2100</small></span></label>
+                  <label class="band-checkbox-item" data-band="2" data-type="lte"><input type="checkbox" value="2"><span class="band-check-mark"></span><span class="band-label">B2<small>1900</small></span></label>
+                  <label class="band-checkbox-item" data-band="3" data-type="lte"><input type="checkbox" value="3"><span class="band-check-mark"></span><span class="band-label">B3<small>1800</small></span></label>
+                  <label class="band-checkbox-item" data-band="4" data-type="lte"><input type="checkbox" value="4"><span class="band-check-mark"></span><span class="band-label">B4<small>AWS</small></span></label>
+                  <label class="band-checkbox-item" data-band="5" data-type="lte"><input type="checkbox" value="5"><span class="band-check-mark"></span><span class="band-label">B5<small>850</small></span></label>
+                  <label class="band-checkbox-item" data-band="7" data-type="lte"><input type="checkbox" value="7"><span class="band-check-mark"></span><span class="band-label">B7<small>2600</small></span></label>
+                  <label class="band-checkbox-item" data-band="8" data-type="lte"><input type="checkbox" value="8"><span class="band-check-mark"></span><span class="band-label">B8<small>900</small></span></label>
+                  <label class="band-checkbox-item" data-band="12" data-type="lte"><input type="checkbox" value="12"><span class="band-check-mark"></span><span class="band-label">B12<small>700a</small></span></label>
+                  <label class="band-checkbox-item" data-band="13" data-type="lte"><input type="checkbox" value="13"><span class="band-check-mark"></span><span class="band-label">B13<small>700c</small></span></label>
+                  <label class="band-checkbox-item" data-band="14" data-type="lte"><input type="checkbox" value="14"><span class="band-check-mark"></span><span class="band-label">B14<small>700ps</small></span></label>
+                  <label class="band-checkbox-item" data-band="17" data-type="lte"><input type="checkbox" value="17"><span class="band-check-mark"></span><span class="band-label">B17<small>700b</small></span></label>
+                  <label class="band-checkbox-item" data-band="18" data-type="lte"><input type="checkbox" value="18"><span class="band-check-mark"></span><span class="band-label">B18<small>800</small></span></label>
+                  <label class="band-checkbox-item" data-band="19" data-type="lte"><input type="checkbox" value="19"><span class="band-check-mark"></span><span class="band-label">B19<small>800</small></span></label>
+                  <label class="band-checkbox-item" data-band="20" data-type="lte"><input type="checkbox" value="20"><span class="band-check-mark"></span><span class="band-label">B20<small>800</small></span></label>
+                  <label class="band-checkbox-item" data-band="25" data-type="lte"><input type="checkbox" value="25"><span class="band-check-mark"></span><span class="band-label">B25<small>1900</small></span></label>
+                  <label class="band-checkbox-item" data-band="26" data-type="lte"><input type="checkbox" value="26"><span class="band-check-mark"></span><span class="band-label">B26<small>850</small></span></label>
+                  <label class="band-checkbox-item" data-band="28" data-type="lte"><input type="checkbox" value="28"><span class="band-check-mark"></span><span class="band-label">B28<small>700</small></span></label>
+                  <label class="band-checkbox-item" data-band="29" data-type="lte"><input type="checkbox" value="29"><span class="band-check-mark"></span><span class="band-label">B29<small>700d</small></span></label>
+                  <label class="band-checkbox-item" data-band="30" data-type="lte"><input type="checkbox" value="30"><span class="band-check-mark"></span><span class="band-label">B30<small>2300</small></span></label>
+                  <label class="band-checkbox-item" data-band="32" data-type="lte"><input type="checkbox" value="32"><span class="band-check-mark"></span><span class="band-label">B32<small>1500</small></span></label>
+                  <label class="band-checkbox-item" data-band="38" data-type="lte"><input type="checkbox" value="38"><span class="band-check-mark"></span><span class="band-label">B38<small>2600T</small></span></label>
+                  <label class="band-checkbox-item" data-band="39" data-type="lte"><input type="checkbox" value="39"><span class="band-check-mark"></span><span class="band-label">B39<small>1900T</small></span></label>
+                  <label class="band-checkbox-item" data-band="40" data-type="lte"><input type="checkbox" value="40"><span class="band-check-mark"></span><span class="band-label">B40<small>2300T</small></span></label>
+                  <label class="band-checkbox-item" data-band="41" data-type="lte"><input type="checkbox" value="41"><span class="band-check-mark"></span><span class="band-label">B41<small>2500T</small></span></label>
+                  <label class="band-checkbox-item" data-band="42" data-type="lte"><input type="checkbox" value="42"><span class="band-check-mark"></span><span class="band-label">B42<small>3500</small></span></label>
+                  <label class="band-checkbox-item" data-band="43" data-type="lte"><input type="checkbox" value="43"><span class="band-check-mark"></span><span class="band-label">B43<small>3700</small></span></label>
+                  <label class="band-checkbox-item" data-band="66" data-type="lte"><input type="checkbox" value="66"><span class="band-check-mark"></span><span class="band-label">B66<small>AWS+</small></span></label>
+                </div>
+              </div>
+
+              <!-- 3G/WCDMA Bands -->
+              <div class="band-group">
+                <div class="band-group-header">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M2 20h.01"/><path d="M7 20v-4"/><path d="M12 20v-8"/>
+                  </svg>
+                  <span>3G / WCDMA Bands</span>
+                  <span id="wcdma-band-count" class="band-count">0 / 8 selected</span>
+                </div>
+                <div id="wcdma-band-grid" class="band-grid">
+                  <label class="band-checkbox-item" data-band="1" data-type="wcdma"><input type="checkbox" value="1"><span class="band-check-mark"></span><span class="band-label">B1<small>2100</small></span></label>
+                  <label class="band-checkbox-item" data-band="2" data-type="wcdma"><input type="checkbox" value="2"><span class="band-check-mark"></span><span class="band-label">B2<small>1900</small></span></label>
+                  <label class="band-checkbox-item" data-band="4" data-type="wcdma"><input type="checkbox" value="4"><span class="band-check-mark"></span><span class="band-label">B4<small>AWS</small></span></label>
+                  <label class="band-checkbox-item" data-band="5" data-type="wcdma"><input type="checkbox" value="5"><span class="band-check-mark"></span><span class="band-label">B5<small>850</small></span></label>
+                  <label class="band-checkbox-item" data-band="6" data-type="wcdma"><input type="checkbox" value="6"><span class="band-check-mark"></span><span class="band-label">B6<small>800</small></span></label>
+                  <label class="band-checkbox-item" data-band="8" data-type="wcdma"><input type="checkbox" value="8"><span class="band-check-mark"></span><span class="band-label">B8<small>900</small></span></label>
+                  <label class="band-checkbox-item" data-band="9" data-type="wcdma"><input type="checkbox" value="9"><span class="band-check-mark"></span><span class="band-label">B9<small>1700</small></span></label>
+                  <label class="band-checkbox-item" data-band="19" data-type="wcdma"><input type="checkbox" value="19"><span class="band-check-mark"></span><span class="band-label">B19<small>800</small></span></label>
+                </div>
+              </div>
+
+              <!-- Status Bar & Apply -->
+              <div class="band-status-bar">
+                <div class="band-status-info">
+                  <span id="band-status-text" class="text-muted">Select bands to lock and click Apply</span>
+                </div>
+                <button id="btn-apply-bands" class="btn btn-primary" onclick="Network.applyBandLock()">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M20 6L9 17l-5-5"/>
+                  </svg>
+                  Apply Band Lock
+                </button>
               </div>
             </div>
           </div>
