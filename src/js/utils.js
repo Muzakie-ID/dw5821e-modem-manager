@@ -91,31 +91,209 @@ const Utils = (() => {
   function parseDebugSignal(response) {
     if (!response || isError(response)) return null;
 
-    const rsrpMatch = response.match(/(?:RSRP|rsrp)[:\s\-=]+(-?\d+)/i);
-    const rsrqMatch = response.match(/(?:RSRQ|rsrq)[:\s\-=]+(-?\d+)/i);
-    const sinrMatch = response.match(/(?:SINR|sinr|RS-SINR|rs-sinr)[:\s\-=]+(-?\d+(?:\.\d+)?)/i);
-    const rssiMatch = response.match(/(?:RSSI|rssi)[:\s\-=]+(-?\d+)/i);
+    const rsrpMatch = response.match(/(?:RSRP|rsrp)[:\s=]+(-?\d+(?:\.\d+)?)/i);
+    const rsrqMatch = response.match(/(?:RSRQ|rsrq)[:\s=]+(-?\d+(?:\.\d+)?)/i);
+    const sinrMatch = response.match(/(?:SINR|sinr|RS-SINR|rs-sinr|RS-SNR|rs-snr|SNR|snr)[:\s=]+(-?\d+(?:\.\d+)?)/i);
+    const rssiMatch = response.match(/(?:RSSI|rssi)[:\s=]+(-?\d+(?:\.\d+)?)/i);
 
-    const rsrp = rsrpMatch ? parseInt(rsrpMatch[1]) : null;
-    const rsrq = rsrqMatch ? parseInt(rsrqMatch[1]) : null;
+    const rsrp = rsrpMatch ? parseFloat(rsrpMatch[1]) : null;
+    const rsrq = rsrqMatch ? parseFloat(rsrqMatch[1]) : null;
     const sinr = sinrMatch ? parseFloat(sinrMatch[1]) : null;
-    let dbm = rssiMatch ? parseInt(rssiMatch[1]) : null;
+    let dbm = rssiMatch ? parseFloat(rssiMatch[1]) : null;
     
     if (dbm !== null && dbm >= 0 && dbm <= 31) {
       dbm = rssiToDbm(dbm);
     }
 
+    // Extract SCells from SCellX: blocks
+    const scells = [];
+    const scellRegex = /SCell\d+:[\s\S]*?(?=SCell\d+:|OK|$)/g;
+    const scellMatches = response.match(scellRegex);
+    
+    if (scellMatches) {
+      for (const block of scellMatches) {
+        const s_bandMatch = block.match(/BAND[:\s]*(\d+)/i);
+        const s_bwMatch = block.match(/BW[:\s]*([\d\.]+)\s*MHz/i);
+        const s_rsrpMatch = block.match(/RSRP[:\s]*(-?\d+(?:\.\d+)?)/i);
+        const s_rsrqMatch = block.match(/RSRQ[:\s]*(-?\d+(?:\.\d+)?)/i);
+        const s_sinrMatch = block.match(/(?:SINR|SNR)[:\s]*(-?\d+(?:\.\d+)?)/i);
+
+        if (s_bandMatch) {
+          scells.push({
+            band: parseInt(s_bandMatch[1]),
+            bandwidth: s_bwMatch ? parseFloat(s_bwMatch[1]) : null,
+            rsrp: s_rsrpMatch ? parseFloat(s_rsrpMatch[1]) : null,
+            rsrq: s_rsrqMatch ? parseFloat(s_rsrqMatch[1]) : null,
+            sinr: s_sinrMatch ? parseFloat(s_sinrMatch[1]) : null
+          });
+        }
+      }
+    }
+
     return {
       dbm,
-      rssi: rssiMatch ? parseInt(rssiMatch[1]) : null,
+      rssi: rssiMatch ? parseFloat(rssiMatch[1]) : null,
       rsrp,
       rsrq,
-      sinr
+      sinr,
+      scells
     };
   }
 
   /**
+   * LTE Band → Frequency mapping
+   */
+  const BAND_FREQ_MAP = {
+    1: '2100', 2: '1900', 3: '1800', 4: 'AWS', 5: '850', 7: '2600',
+    8: '900', 12: '700a', 13: '700c', 14: '700ps', 17: '700b',
+    18: '800', 19: '800', 20: '800', 25: '1900', 26: '850',
+    28: '700', 29: '700d', 30: '2300', 32: '1500',
+    38: '2600T', 39: '1900T', 40: '2300T', 41: '2500T',
+    42: '3500', 43: '3700', 66: 'AWS+'
+  };
 
+  /**
+   * Get signal quality level for RSRP value
+   * Returns: { label: string, class: string, color: string, percent: number }
+   */
+  function getRsrpQuality(rsrp) {
+    if (rsrp === null || rsrp === undefined) {
+      return { label: 'Unknown', class: 'none', color: '#64748b', percent: 0 };
+    }
+    const percent = Math.max(0, Math.min(100, ((rsrp + 140) / 96) * 100));
+    if (rsrp >= -80) return { label: 'Excellent', class: 'excellent', color: '#00d4ff', percent };
+    if (rsrp >= -90) return { label: 'Good', class: 'good', color: '#22c55e', percent };
+    if (rsrp >= -100) return { label: 'Fair', class: 'fair', color: '#f59e0b', percent };
+    if (rsrp >= -110) return { label: 'Weak', class: 'weak', color: '#ef4444', percent };
+    return { label: 'Very Weak', class: 'very-weak', color: '#dc2626', percent };
+  }
+
+  /**
+   * Parse AT+QENG="servingcell" response (Quectel-style)
+   * Example: +QENG: "servingcell","NOCONN","LTE","FDD",510,10,1234567,123,1300,3,5,5,-106,-17,-2,10
+   */
+  function parseServingCell(response) {
+    if (!response || isError(response)) return null;
+    const cells = [];
+
+    const lines = response.split('\n');
+    for (const line of lines) {
+      const m = line.match(/\+QENG:\s*"servingcell","[^"]*","LTE","([^"]*)",\d+,\d+,\d+,(\d+),(\d+),(\d+),\d+,\d+,(-?\d+),(-?\d+),(-?\d+),(\d+)/);
+      if (m) {
+        cells.push({
+          type: 'PCC',
+          duplex: m[1],
+          pci: parseInt(m[2]),
+          earfcn: parseInt(m[3]),
+          band: parseInt(m[4]),
+          rsrp: parseInt(m[5]),
+          rsrq: parseInt(m[6]),
+          sinr: parseInt(m[7]),
+          bandwidth: parseInt(m[8]),
+          freq: BAND_FREQ_MAP[parseInt(m[4])] || ''
+        });
+      }
+    }
+    return cells.length > 0 ? cells : null;
+  }
+
+  /**
+   * Parse AT+QCAINFO response (Carrier Aggregation — Quectel-style)
+   * Example:
+   *   +QCAINFO: "PCC",1300,50,3,-106,-17,-2,123
+   *   +QCAINFO: "SCC",100,75,1,-98,-12,8,456
+   */
+  function parseQCAInfo(response) {
+    if (!response || isError(response)) return null;
+    const cells = [];
+
+    const lines = response.split('\n');
+    for (const line of lines) {
+      const m = line.match(/\+QCAINFO:\s*"(\w+)",(\d+),(\d+),(\d+),(-?\d+),(-?\d+),(-?\d+),(\d+)/);
+      if (m) {
+        const band = parseInt(m[4]);
+        cells.push({
+          type: m[1],
+          earfcn: parseInt(m[2]),
+          bandwidth: bandwidthFromRB(parseInt(m[3])),
+          band: band,
+          rsrp: parseInt(m[5]),
+          rsrq: parseInt(m[6]),
+          sinr: parseInt(m[7]),
+          pci: parseInt(m[8]),
+          freq: BAND_FREQ_MAP[band] || ''
+        });
+      }
+    }
+    return cells.length > 0 ? cells : null;
+  }
+
+  /**
+   * Parse AT+QNWINFO response
+   * Example: +QNWINFO: "FDD LTE","51010","LTE BAND 3",1300
+   */
+  function parseQNWInfo(response) {
+    if (!response || isError(response)) return null;
+
+    const m = response.match(/\+QNWINFO:\s*"([^"]*)","([^"]*)","([^"]*)",\s*(\d+)/);
+    if (!m) return null;
+
+    const bandMatch = m[3].match(/BAND\s*(\d+)/i);
+    const band = bandMatch ? parseInt(bandMatch[1]) : null;
+
+    return {
+      mode: m[1],
+      plmn: m[2],
+      bandText: m[3],
+      earfcn: parseInt(m[4]),
+      band: band,
+      freq: band ? (BAND_FREQ_MAP[band] || '') : ''
+    };
+  }
+
+  /**
+   * Parse AT^DEBUG? response for per-band info
+   * Some Dell/Foxconn modems include band info in debug output
+   */
+  function parseDebugBandInfo(response) {
+    if (!response || isError(response)) return null;
+    const cells = [];
+
+    const bandMatch = response.match(/(?:Band|BAND|LTE Band|E-UTRA Band)[:\s=]+(\d+)/i);
+    const earfcnMatch = response.match(/(?:EARFCN|earfcn|DL EARFCN|Channel)[:\s=]+(\d+)/i);
+    const pciMatch = response.match(/(?:PCI|pci|Physical Cell ID|PhysCellId)[:\s=]+(\d+)/i);
+    const bwMatch = response.match(/(?:BW|Bandwidth|DL BW|bandwidth)[:\s=]+(\d+)/i);
+    const rsrpMatch = response.match(/(?:RSRP|rsrp)[:\s=]+(-?\d+(?:\.\d+)?)/i);
+    const rsrqMatch = response.match(/(?:RSRQ|rsrq)[:\s=]+(-?\d+(?:\.\d+)?)/i);
+    const sinrMatch = response.match(/(?:SINR|sinr|RS-SINR|SNR|snr)[:\s=]+(-?\d+(?:\.\d+)?)/i);
+
+    if (bandMatch || earfcnMatch) {
+      const band = bandMatch ? parseInt(bandMatch[1]) : null;
+      cells.push({
+        type: 'PCC',
+        band: band,
+        earfcn: earfcnMatch ? parseInt(earfcnMatch[1]) : null,
+        pci: pciMatch ? parseInt(pciMatch[1]) : null,
+        bandwidth: bwMatch ? parseInt(bwMatch[1]) : null,
+        rsrp: rsrpMatch ? parseFloat(rsrpMatch[1]) : null,
+        rsrq: rsrqMatch ? parseFloat(rsrqMatch[1]) : null,
+        sinr: sinrMatch ? parseFloat(sinrMatch[1]) : null,
+        freq: band ? (BAND_FREQ_MAP[band] || '') : ''
+      });
+    }
+
+    return cells.length > 0 ? cells : null;
+  }
+
+  /**
+   * Convert Resource Block count to bandwidth in MHz
+   */
+  function bandwidthFromRB(rb) {
+    const map = { 6: 1.4, 15: 3, 25: 5, 50: 10, 75: 15, 100: 20 };
+    return map[rb] || rb;
+  }
+
+  /**
    * Parse AT+CREG? response
    * Input: "+CREG: 0,1" → { mode: 0, stat: 1, statText: 'Registered, Home' }
    */
@@ -250,6 +428,109 @@ const Utils = (() => {
       .trim();
   }
 
+  // ─── Dell DW5821e Specific Parsers ──────────────────────────────────────────
+
+  function parseDellTemp(response) {
+    const match = response.match(/\^TEMP:\s*([\d.-]+)/);
+    return match ? parseFloat(match[1]) : null;
+  }
+
+  function parseDellVolt(response) {
+    // AT+VOLT usually returns +VOLT: <value> or similar
+    const match = response.match(/\+VOLT:\s*([\d.-]+)/);
+    return match ? match[1] : null;
+  }
+
+  function parseDellCat(response) {
+    const match = response.match(/\^GETLTECAT:\s*(\d+)/i);
+    return match ? `CAT ${match[1]}` : null;
+  }
+
+  function parseDellUSB(response) {
+    const match = response.match(/\^USBTYPE:\s*(.*)/i);
+    return match ? match[1].trim() : null;
+  }
+
+  function parseDellCustomer(response) {
+    const match = response.match(/\^CUSTOMER:\s*"?(.*?)"?\r?\n/i);
+    if (!match) {
+        // Fallback for no quotes
+        const m = response.match(/\^CUSTOMER:\s*(.*)/i);
+        return m ? m[1].trim() : null;
+    }
+    return match[1].trim();
+  }
+
+  function parseDellError(response) {
+    const match = response.match(/\+CEER:\s*(.*)/i);
+    return match ? match[1].trim() : null;
+  }
+
+  /**
+   * Parse AT^CA_INFO?
+   * Format usually: ^CA_INFO: PCC, Band, BW ... SCC, Band, BW ...
+   * We will extract it generically or fallback to a string.
+   */
+  function parseDellCAInfo(response) {
+    const cells = [];
+    const lines = response.split('\n').map(l => l.trim());
+    
+    for (const line of lines) {
+      // Regex to match "PCC info: Band is LTE_B3, Band_width is 20.0 MHz"
+      // or "SCC1 info: Band is LTE_B1, Band_width is 20.0 MHz"
+      const match = line.match(/(PCC|SCC\d*)\s*info:\s*Band\s*is\s*LTE_B(\d+),\s*Band_width\s*is\s*([\d.]+)\s*MHz/i);
+      if (match) {
+        const typeStr = match[1].toUpperCase();
+        const isPcc = typeStr === 'PCC';
+        const band = parseInt(match[2]);
+        const bandwidth = match[3]; // The UI template already appends ' MHz'
+        
+        cells.push({
+          type: isPcc ? 'PCC' : 'SCC',
+          band: band,
+          bandwidth: bandwidth,
+          earfcn: null,
+          pci: null,
+          rsrp: null,
+          rsrq: null,
+          sinr: null,
+          freq: BAND_FREQ_MAP[band] || null
+        });
+      }
+    }
+    return cells.length > 0 ? cells : null;
+  }
+
+  function parseDellABand(response) {
+    const info = response.split('\n').map(l => l.trim()).find(l => l.startsWith('^ABAND:'));
+    return info ? info.replace('^ABAND:', '').trim() : null;
+  }
+
+  function parseDellSLBand(response) {
+    // New format based on user output: "LTE,Enable Bands :1,2,3,..."
+    const match = response.match(/LTE,Enable Bands\s*:([,\d\s]+)/i);
+    if (match) {
+      return match[1].split(',').map(b => parseInt(b.trim())).filter(b => !isNaN(b));
+    }
+
+    // Fallback for older firmware just in case
+    const info = response.split('\n').map(l => l.trim()).find(l => l.startsWith('^SLBAND:'));
+    if (info) {
+      const bandsStr = info.replace('^SLBAND:', '').replace('LTE', '').replace(/^[,\s]+/, '').trim();
+      return bandsStr.split(',').map(b => parseInt(b.trim())).filter(b => !isNaN(b));
+    }
+    return [];
+  }
+
+  function parseDellBandPri(response) {
+    const info = response.split('\n').map(l => l.trim()).find(l => l.startsWith('^BAND_PRI:'));
+    if (info) {
+      const bandsStr = info.replace('^BAND_PRI:', '').trim();
+      return bandsStr.split(',').map(b => parseInt(b.trim())).filter(b => !isNaN(b));
+    }
+    return [];
+  }
+
   /**
    * Get single line response (for simple AT queries like ATI, AT+CGSN)
    */
@@ -306,20 +587,36 @@ const Utils = (() => {
   return {
     rssiToDbm,
     getSignalQuality,
+    getRsrpQuality,
     parseCSQ,
     parseCESQ,
     parseDebugSignal,
+    parseServingCell,
+    parseQCAInfo,
+    parseQNWInfo,
+    parseDebugBandInfo,
     parseCREG,
     parseCOPS,
     parseCOPSScan,
     parseCPIN,
     parseCGDCONT,
     parseCFUN,
+    parseDellTemp,
+    parseDellVolt,
+    parseDellCat,
+    parseDellUSB,
+    parseDellCustomer,
+    parseDellError,
+    parseDellCAInfo,
+    parseDellABand,
+    parseDellSLBand,
+    parseDellBandPri,
     cleanResponse,
     getSingleLine,
     showToast,
     formatTime,
     isOk,
-    isError
+    isError,
+    BAND_FREQ_MAP
   };
 })();

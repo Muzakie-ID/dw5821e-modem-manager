@@ -160,6 +160,40 @@ const Dashboard = (() => {
         document.getElementById('dash-apn').textContent = apns[0].apn || 'N/A';
         document.getElementById('apn-current').value = apns[0].apn || '';
       }
+
+      // Band and Bandwidth Information
+      try {
+        const caResp = await window.modemAPI.sendCommand('AT^CA_INFO?');
+        let activeBands = [];
+        let bandwidths = [];
+        
+        if (caResp && !Utils.isError(caResp)) {
+          const caInfo = Utils.parseDellCAInfo(caResp);
+          if (caInfo) {
+            caInfo.forEach(c => {
+              activeBands.push(`B${c.band}`);
+              if (c.bandwidth) bandwidths.push(c.bandwidth);
+            });
+          }
+        }
+        
+        if (activeBands.length === 0) {
+          // Fallback to ABAND
+          const abandResp = await window.modemAPI.sendCommand('AT^ABAND?');
+          if (abandResp && !Utils.isError(abandResp)) {
+            const abandStr = Utils.parseDellABand(abandResp);
+            if (abandStr) {
+              const match = abandStr.match(/(?:LTE|WCDMA),(\d+)/i); // e.g. "LTE,3,..."
+              if (match) activeBands.push(`B${match[1]}`);
+            }
+          }
+        }
+        
+        document.getElementById('dash-active-band').textContent = activeBands.length > 0 ? activeBands.join(' + ') : '--';
+        document.getElementById('dash-bandwidth').textContent = bandwidths.length > 0 ? bandwidths.join(' + ') + ' MHz' : '--';
+      } catch (e) {
+        /* skip */
+      }
     } catch (err) {
       console.error('Network refresh error:', err);
     }
@@ -244,6 +278,42 @@ const Dashboard = (() => {
         document.getElementById('dev-firmware').textContent = fw;
       }
 
+      // LTE Category
+      const catResp = await window.modemAPI.sendCommand('AT^GETLTECAT?');
+      if (catResp && !Utils.isError(catResp)) {
+        const cat = Utils.parseDellCat(catResp);
+        if (cat) document.getElementById('dash-cat').textContent = cat;
+      }
+
+      // Customer
+      const custResp = await window.modemAPI.sendCommand('AT^CUSTOMER?');
+      if (custResp && !Utils.isError(custResp)) {
+        const cust = Utils.parseDellCustomer(custResp);
+        if (cust) document.getElementById('dash-customer').textContent = cust;
+      }
+
+      // Temperature
+      const tempResp = await window.modemAPI.sendCommand('AT^TEMP?');
+      if (tempResp && !Utils.isError(tempResp)) {
+        const temp = Utils.parseDellTemp(tempResp);
+        if (temp !== null) document.getElementById('dev-temp').textContent = `${temp} °C`;
+      }
+
+      // Voltage
+      const voltResp = await window.modemAPI.sendCommand('AT+VOLT');
+      if (voltResp && !Utils.isError(voltResp)) {
+        const volt = Utils.parseDellVolt(voltResp);
+        // Voltage usually in microvolts, e.g. 3300. Display as is or convert if needed.
+        if (volt) document.getElementById('dev-volt').textContent = `${volt} mV`;
+      }
+
+      // USB Type
+      const usbResp = await window.modemAPI.sendCommand('AT^USBTYPE?');
+      if (usbResp && !Utils.isError(usbResp)) {
+        const usb = Utils.parseDellUSB(usbResp);
+        if (usb) document.getElementById('dev-usb').textContent = usb;
+      }
+
       // Radio status
       const cfunResp = await window.modemAPI.sendCommand('AT+CFUN?');
       const cfun = Utils.parseCFUN(cfunResp);
@@ -261,38 +331,27 @@ const Dashboard = (() => {
    */
   function updateRadioStatus(cfun) {
     const indicator = document.getElementById('radio-status-indicator');
-    if (cfun.enabled) {
-      indicator.textContent = 'Enabled';
-      indicator.className = 'status-pill status-on';
-    } else {
-      indicator.textContent = 'Disabled';
-      indicator.className = 'status-pill status-off';
-    }
-  }
-
-  /**
-   * Toggle radio on/off
-   */
-  async function toggleRadio() {
-    try {
-      const connected = await window.modemAPI.isConnected();
-      if (!connected) {
-        Utils.showToast('Connect to modem first', 'warning');
-        return;
-      }
-
-      const newState = radioEnabled ? 0 : 1;
-      const response = await window.modemAPI.sendCommand(`AT+CFUN=${newState}`);
-
-      if (Utils.isOk(response)) {
-        radioEnabled = !radioEnabled;
-        updateRadioStatus({ enabled: radioEnabled });
-        Utils.showToast(`Radio ${radioEnabled ? 'enabled' : 'disabled'}`, 'success');
+    const btnOn = document.getElementById('btn-radio-on');
+    const btnOff = document.getElementById('btn-radio-off');
+    
+    if (indicator) {
+      if (cfun.enabled) {
+        indicator.textContent = 'Enabled';
+        indicator.className = 'status-pill status-on';
       } else {
-        Utils.showToast('Failed to toggle radio', 'error');
+        indicator.textContent = 'Disabled';
+        indicator.className = 'status-pill status-off';
       }
-    } catch (err) {
-      Utils.showToast('Error toggling radio', 'error');
+    }
+    
+    if (btnOn && btnOff) {
+      if (cfun.enabled) {
+        btnOn.className = 'btn btn-primary';
+        btnOff.className = 'btn btn-outline';
+      } else {
+        btnOn.className = 'btn btn-outline';
+        btnOff.className = 'btn btn-primary';
+      }
     }
   }
 
@@ -325,6 +384,35 @@ const Dashboard = (() => {
       }
     } catch (err) {
       Utils.showToast('Error restarting modem', 'error');
+    }
+  }
+
+  /**
+   * Check extended error (AT+CEER)
+   */
+  async function checkError() {
+    try {
+      const connected = await window.modemAPI.isConnected();
+      if (!connected) {
+        Utils.showToast('Connect to modem first', 'warning');
+        return;
+      }
+
+      Utils.showToast('Checking error report...', 'info');
+      const response = await window.modemAPI.sendCommand('AT+CEER');
+      
+      if (response && !Utils.isError(response)) {
+        const errStr = Utils.parseDellError(response);
+        if (errStr) {
+          alert(`Extended Error Report:\n${errStr}`);
+        } else {
+          alert(`Error Report:\n${Utils.cleanResponse(response)}`);
+        }
+      } else {
+        Utils.showToast('Failed to get error report', 'error');
+      }
+    } catch (err) {
+      Utils.showToast('Error checking CEER', 'error');
     }
   }
 
@@ -382,8 +470,8 @@ const Dashboard = (() => {
     refreshSimInfo,
     refreshDeviceInfo,
     updateSignal,
-    toggleRadio,
     restartModem,
+    checkError,
     reset
   };
 })();

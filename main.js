@@ -131,6 +131,13 @@ ipcMain.handle('serial:connect', async (event, portPath, baudRate = 115200) => {
           return;
         }
 
+        // Try to enable DTR/RTS — virtual COM ports (like DW5821e) may not support this
+        try {
+          serialPort.set({ dtr: true, rts: true }, () => {});
+        } catch (e) {
+          // Silently ignore — not required for virtual serial ports
+        }
+
         isConnected = true;
         sendConnectionStatus(true);
 

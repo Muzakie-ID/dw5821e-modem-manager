@@ -15,7 +15,6 @@ const App = (() => {
     Terminal.init();
     Signal.init();
     SMS.init();
-    Dial.init();
 
     // Setup navigation
     setupNavigation();
@@ -212,8 +211,17 @@ const App = (() => {
 
       Utils.showToast('Connected to modem', 'success');
 
-      // Auto-refresh dashboard
-      setTimeout(() => Dashboard.refreshAll(), 500);
+      // Auto-refresh dashboard and network bands
+      setTimeout(() => {
+        Dashboard.refreshAll();
+        Network.readCurrentBands();
+      }, 500);
+
+      // Start auto-refresh for signal monitor if it's checked (default is checked)
+      const autoRefreshCheckbox = document.getElementById('signal-auto-refresh');
+      if (autoRefreshCheckbox && autoRefreshCheckbox.checked) {
+        Signal.toggleAutoRefresh(true, true);
+      }
     } else {
       // Disconnected state
       indicator.className = 'connection-dot disconnected';
@@ -228,12 +236,8 @@ const App = (() => {
       sidebarBtn.classList.remove('connected');
       sidebarBtn.querySelector('span').textContent = 'Connect';
 
-      // Stop auto-refresh
-      const checkbox = document.getElementById('signal-auto-refresh');
-      if (checkbox.checked) {
-        checkbox.checked = false;
-        Signal.toggleAutoRefresh(false);
-      }
+      // Pause auto-refresh (but keep checkbox checked if it was)
+      Signal.toggleAutoRefresh(false, true);
 
       // Reset dashboard
       Dashboard.reset();

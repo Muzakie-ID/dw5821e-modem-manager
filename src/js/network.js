@@ -6,7 +6,7 @@ const Network = (() => {
 
   // ─── Constants ──────────────────────────────────────────────────────────────
 
-  const ALL_LTE_BANDS = [1,2,3,4,5,7,8,12,13,14,17,18,19,20,25,26,28,29,30,32,38,39,40,41,42,43,66];
+  const ALL_LTE_BANDS = [1,2,3,4,5,7,8,12,13,14,17,18,19,20,25,26,28,29,30,32,38,39,40,41,42,43,46,66];
   const ALL_WCDMA_BANDS = [1,2,4,5,6,8,9,19];
 
   // ─── APN ────────────────────────────────────────────────────────────────────
@@ -140,9 +140,9 @@ const Network = (() => {
   // ─── Radio ──────────────────────────────────────────────────────────────────
 
   /**
-   * Set radio state
+   * Refresh IP by restarting radio
    */
-  async function setRadio(state) {
+  async function refreshIP() {
     try {
       const connected = await window.modemAPI.isConnected();
       if (!connected) {
@@ -150,29 +150,81 @@ const Network = (() => {
         return;
       }
 
-      Utils.showToast(`${state ? 'Enabling' : 'Disabling'} radio...`, 'info');
-      const response = await window.modemAPI.sendCommand(`AT+CFUN=${state}`);
+      Utils.showToast('Refreshing IP (Restarting Radio)...', 'info');
+      const ipEl = document.getElementById('public-ip-address');
+      if (ipEl) {
+        ipEl.textContent = 'Restarting radio...';
+        ipEl.className = 'status-pill status-unknown';
+      }
 
-      if (Utils.isOk(response)) {
-        const indicator = document.getElementById('radio-status-indicator');
-        if (state) {
-          indicator.textContent = 'Enabled';
-          indicator.className = 'status-pill status-on';
-        } else {
-          indicator.textContent = 'Disabled';
-          indicator.className = 'status-pill status-off';
-        }
-        Utils.showToast(`Radio ${state ? 'enabled' : 'disabled'}`, 'success');
+      await window.modemAPI.sendCommand('AT+CFUN=4');
+      setTimeout(async () => {
+        await window.modemAPI.sendCommand('AT+CFUN=1');
+        Dashboard.refreshNetworkInfo();
+        
+        if (ipEl) ipEl.textContent = 'Reconnecting...';
+        
+        // Wait another 5 seconds for network registration before checking IP
+        setTimeout(() => {
+          checkIP();
+        }, 5000);
+      }, 2000);
+    } catch (err) {
+      Utils.showToast('Error refreshing IP', 'error');
+    }
+  }
 
-        if (state) {
-          setTimeout(() => Dashboard.refreshAll(), 3000);
-        }
+  let isCheckingIP = false;
+  let ipCheckInterval = null;
+
+  /**
+   * Check Public IP Address using ipify API
+   */
+  async function checkIP(silent = false) {
+    const ipEl = document.getElementById('public-ip-address');
+    if (!ipEl) return;
+    
+    // Prevent overlapping requests if one is already in progress
+    if (isCheckingIP) return;
+    isCheckingIP = true;
+
+    try {
+      if (!silent && ipEl.textContent !== 'Reconnecting...') {
+        ipEl.textContent = 'Checking...';
+        ipEl.className = 'status-pill status-unknown';
+      }
+
+      // We use the browser's fetch API which will route through the default network
+      const response = await fetch('https://api.ipify.org?format=json', {
+        cache: 'no-store'
+      });
+      if (response.ok) {
+        const data = await response.json();
+        ipEl.textContent = data.ip;
+        ipEl.className = 'status-pill status-on';
+        if (!silent) Utils.showToast('Public IP retrieved', 'success');
       } else {
-        Utils.showToast('Failed to change radio state', 'error');
+        throw new Error('API Error');
       }
     } catch (err) {
-      Utils.showToast('Error changing radio state', 'error');
+      ipEl.textContent = 'Failed / Offline';
+      ipEl.className = 'status-pill status-off';
+      if (!silent) Utils.showToast('Failed to retrieve IP. Are you connected to the internet?', 'error');
+    } finally {
+      isCheckingIP = false;
     }
+  }
+
+  // Start auto-checking IP every 3 seconds (3000ms)
+  // We avoid 500ms because public APIs will instantly block us for rate-limiting
+  if (!ipCheckInterval) {
+    ipCheckInterval = setInterval(() => {
+      // Only check if we're on the Network page to save resources
+      const networkPage = document.getElementById('page-network');
+      if (networkPage && !networkPage.classList.contains('hidden')) {
+        checkIP(true);
+      }
+    }, 3000);
   }
 
   // ─── Band Lock ──────────────────────────────────────────────────────────────
@@ -192,7 +244,7 @@ const Network = (() => {
   }
 
   /**
-   * Read current band configuration from modem via AT+GTACT?
+   * Read current band configuration from modem via AT^SLBAND? and AT^BAND_PRI?
    */
   async function readCurrentBands() {
     try {
@@ -204,111 +256,45 @@ const Network = (() => {
 
       Utils.showToast('Reading band configuration...', 'info');
 
-      const response = await window.modemAPI.sendCommand('AT+GTACT?');
+      // Read Selected Bands
+      const slBandResp = await window.modemAPI.sendCommand('AT^SLBAND?');
+      if (Utils.isOk(slBandResp)) {
+        const selectedBands = Utils.parseDellSLBand(slBandResp);
+        
+        toggleAllBands(false, true);
 
-      if (Utils.isOk(response)) {
-        const parsed = parseGTACT(response);
-
-        if (parsed) {
-          // Set RAT mode dropdown
-          const ratSelect = document.getElementById('band-rat-mode');
-          if (ratSelect) {
-            // Try to match the RAT value to an option
-            const option = ratSelect.querySelector(`option[value="${parsed.rat}"]`);
-            if (option) {
-              ratSelect.value = parsed.rat;
-            }
-          }
-
-          // Uncheck all first
-          toggleAllBands(false, true);
-
-          // Check LTE bands from response
-          if (parsed.lteBands.length > 0) {
-            parsed.lteBands.forEach(band => {
-              const cb = document.querySelector(`#lte-band-grid .band-checkbox-item[data-band="${band}"] input`);
-              if (cb) cb.checked = true;
-            });
-          } else {
-            // If no specific bands listed, it means all bands are enabled
-            document.querySelectorAll('#lte-band-grid .band-checkbox-item input').forEach(cb => {
-              cb.checked = true;
-            });
-          }
-
-          // Check WCDMA bands from response
-          if (parsed.wcdmaBands.length > 0) {
-            parsed.wcdmaBands.forEach(band => {
-              const cb = document.querySelector(`#wcdma-band-grid .band-checkbox-item[data-band="${band}"] input`);
-              if (cb) cb.checked = true;
-            });
-          } else {
-            // If no specific bands listed, all bands enabled
-            document.querySelectorAll('#wcdma-band-grid .band-checkbox-item input').forEach(cb => {
-              cb.checked = true;
-            });
-          }
-
-          updateBandCounts();
-          updateBandStatus();
-          updateBandLockBadge(parsed);
-          Utils.showToast('Band configuration read successfully', 'success');
+        if (selectedBands.length > 0) {
+          selectedBands.forEach(band => {
+            const cb = document.querySelector(`#lte-band-grid .band-checkbox-item[data-band="${band}"] input`);
+            if (cb) cb.checked = true;
+          });
         } else {
-          Utils.showToast('Could not parse band configuration', 'warning');
+          // If no specific bands, check all
+          toggleAllBands(true, true);
         }
+
+        updateBandCounts();
+        updateBandStatus();
+        updateBandLockBadge(selectedBands);
+        Utils.showToast('Band configuration read successfully', 'success');
       } else {
-        // Try alternative: just display raw response
-        Utils.showToast('AT+GTACT not supported or error. Try AT Terminal.', 'warning');
+        Utils.showToast('AT^SLBAND not supported or error. Try AT Terminal.', 'warning');
       }
+
+      // Read Priority Bands
+      const priResp = await window.modemAPI.sendCommand('AT^BAND_PRI?');
+      if (Utils.isOk(priResp)) {
+        const priBands = Utils.parseDellBandPri(priResp);
+        document.getElementById('priority-bands').value = priBands.join(',');
+      }
+
     } catch (err) {
       Utils.showToast('Error reading band configuration', 'error');
     }
   }
 
   /**
-   * Parse AT+GTACT? response
-   * Format: +GTACT: <rat>,<pref1>,<pref2>[,<band1>,<band2>,...]
-   * Example: +GTACT: 2,1,0,1,3,7,8,20
-   */
-  function parseGTACT(response) {
-    const lines = response.split('\n');
-    for (const line of lines) {
-      const match = line.match(/\+GTACT:\s*(.+)/);
-      if (match) {
-        const parts = match[1].split(',').map(s => parseInt(s.trim()));
-        if (parts.length >= 1) {
-          const rat = parts[0];
-          const pref1 = parts.length > 1 ? parts[1] : 0;
-          const pref2 = parts.length > 2 ? parts[2] : 0;
-
-          // Remaining values are band numbers
-          const bands = parts.slice(3).filter(b => !isNaN(b) && b > 0);
-
-          // Separate LTE and WCDMA bands
-          const lteBands = bands.filter(b => ALL_LTE_BANDS.includes(b));
-          const wcdmaBands = bands.filter(b => ALL_WCDMA_BANDS.includes(b) && !ALL_LTE_BANDS.includes(b));
-
-          // Note: Some bands exist in both LTE and WCDMA lists (e.g., B1, B2, B5, B8)
-          // When GTACT returns bands, context depends on RAT mode
-          // For simplicity, we'll mark bands in both grids if they appear in both lists
-
-          return {
-            rat,
-            pref1,
-            pref2,
-            allBands: bands,
-            lteBands: bands.filter(b => ALL_LTE_BANDS.includes(b)),
-            wcdmaBands: bands.filter(b => ALL_WCDMA_BANDS.includes(b)),
-            isAllBands: bands.length === 0 // No bands listed = all enabled
-          };
-        }
-      }
-    }
-    return null;
-  }
-
-  /**
-   * Apply band lock — send AT+GTACT command with selected bands
+   * Apply band lock — send AT^SLBAND command with selected bands
    */
   async function applyBandLock() {
     try {
@@ -324,33 +310,19 @@ const Network = (() => {
         lteBands.push(parseInt(cb.value));
       });
 
-      // Get selected WCDMA bands
-      const wcdmaBands = [];
-      document.querySelectorAll('#wcdma-band-grid .band-checkbox-item input:checked').forEach(cb => {
-        wcdmaBands.push(parseInt(cb.value));
-      });
-
-      if (lteBands.length === 0 && wcdmaBands.length === 0) {
+      if (lteBands.length === 0) {
         Utils.showToast('Please select at least one band', 'warning');
         return;
       }
 
-      const ratMode = document.getElementById('band-rat-mode').value;
-
-      // Combine all selected bands
-      const allSelectedBands = [...new Set([...lteBands, ...wcdmaBands])];
-
-      // Check if all bands are selected — if so, just send RAT mode only (= unlock)
       const allLteSelected = lteBands.length === ALL_LTE_BANDS.length;
-      const allWcdmaSelected = wcdmaBands.length === ALL_WCDMA_BANDS.length;
 
       let command;
-      if (allLteSelected && allWcdmaSelected) {
-        // All bands selected = essentially unlocked, just set RAT mode
-        command = `AT+GTACT=${ratMode}`;
+      if (allLteSelected) {
+        // Send all supported bands explicitly
+        command = `AT^SLBAND=LTE,2,${lteBands.join(',')}`;
       } else {
-        // Build command with specific bands
-        command = `AT+GTACT=${ratMode},${ratMode === '14' ? '1' : ratMode === '13' ? '2' : '1'},0,${allSelectedBands.join(',')}`;
+        command = `AT^SLBAND=LTE,2,${lteBands.join(',')}`;
       }
 
       Utils.showToast('Applying band lock...', 'info');
@@ -360,17 +332,21 @@ const Network = (() => {
         updateBandCounts();
         updateBandStatus();
 
-        // Update badge
-        if (allLteSelected && allWcdmaSelected) {
+        if (allLteSelected) {
           setBandBadge('Unlocked', 'badge-gray');
         } else {
           setBandBadge('Locked', 'badge-yellow');
         }
 
-        Utils.showToast('Band lock applied successfully!', 'success');
-
-        // Refresh network info after a moment
-        setTimeout(() => Dashboard.refreshNetworkInfo(), 3000);
+        Utils.showToast('Band lock applied. Restarting radio to take effect...', 'success');
+        
+        // Toggle Radio to apply changes
+        await window.modemAPI.sendCommand('AT+CFUN=4');
+        setTimeout(async () => {
+          await window.modemAPI.sendCommand('AT+CFUN=1');
+          Dashboard.refreshNetworkInfo();
+          Utils.showToast('Radio restarted. Reconnecting...', 'info');
+        }, 2000);
       } else {
         Utils.showToast('Failed to apply band lock. Check AT Terminal for details.', 'error');
       }
@@ -380,7 +356,41 @@ const Network = (() => {
   }
 
   /**
-   * Reset all bands — unlock all bands by sending AT+GTACT=2
+   * Apply priority bands - send AT^BAND_PRI
+   */
+  async function applyPriorityBands() {
+    try {
+      const connected = await window.modemAPI.isConnected();
+      if (!connected) {
+        Utils.showToast('Connect to modem first', 'warning');
+        return;
+      }
+
+      const priStr = document.getElementById('priority-bands').value.trim();
+      const command = priStr ? `AT^BAND_PRI=${priStr}` : `AT^BAND_PRI=`;
+
+      Utils.showToast('Applying priority bands...', 'info');
+      const response = await window.modemAPI.sendCommand(command);
+
+      if (Utils.isOk(response)) {
+        Utils.showToast('Priority bands set. Restarting radio...', 'success');
+        
+        // Toggle Radio to apply changes
+        await window.modemAPI.sendCommand('AT+CFUN=4');
+        setTimeout(async () => {
+          await window.modemAPI.sendCommand('AT+CFUN=1');
+          Dashboard.refreshNetworkInfo();
+        }, 2000);
+      } else {
+        Utils.showToast('Failed to set priority bands.', 'error');
+      }
+    } catch (err) {
+      Utils.showToast('Error setting priority bands', 'error');
+    }
+  }
+
+  /**
+   * Reset all bands — unlock all bands by sending AT^SLBAND with all bands
    */
   async function resetAllBands() {
     try {
@@ -391,21 +401,24 @@ const Network = (() => {
       }
 
       Utils.showToast('Resetting band configuration...', 'info');
-      const response = await window.modemAPI.sendCommand('AT+GTACT=2');
+      
+      const allBandsCommand = `AT^SLBAND=LTE,2,${ALL_LTE_BANDS.join(',')}`;
+      const response = await window.modemAPI.sendCommand(allBandsCommand);
 
       if (Utils.isOk(response)) {
-        // Select all checkboxes
         toggleAllBands(true, true);
-
-        // Reset RAT to auto
-        document.getElementById('band-rat-mode').value = '2';
 
         updateBandCounts();
         updateBandStatus();
         setBandBadge('Unlocked', 'badge-gray');
-        Utils.showToast('All bands unlocked (reset to auto)', 'success');
+        Utils.showToast('All bands unlocked. Restarting radio...', 'success');
 
-        setTimeout(() => Dashboard.refreshNetworkInfo(), 3000);
+        // Toggle Radio to apply changes
+        await window.modemAPI.sendCommand('AT+CFUN=4');
+        setTimeout(async () => {
+          await window.modemAPI.sendCommand('AT+CFUN=1');
+          Dashboard.refreshNetworkInfo();
+        }, 2000);
       } else {
         Utils.showToast('Failed to reset bands', 'error');
       }
@@ -434,13 +447,8 @@ const Network = (() => {
    */
   function updateBandCounts() {
     const lteChecked = document.querySelectorAll('#lte-band-grid .band-checkbox-item input:checked').length;
-    const wcdmaChecked = document.querySelectorAll('#wcdma-band-grid .band-checkbox-item input:checked').length;
-
     const lteCountEl = document.getElementById('lte-band-count');
-    const wcdmaCountEl = document.getElementById('wcdma-band-count');
-
     if (lteCountEl) lteCountEl.textContent = `${lteChecked} / ${ALL_LTE_BANDS.length} selected`;
-    if (wcdmaCountEl) wcdmaCountEl.textContent = `${wcdmaChecked} / ${ALL_WCDMA_BANDS.length} selected`;
   }
 
   /**
@@ -448,9 +456,8 @@ const Network = (() => {
    */
   function updateBandStatus() {
     const lteChecked = document.querySelectorAll('#lte-band-grid .band-checkbox-item input:checked').length;
-    const wcdmaChecked = document.querySelectorAll('#wcdma-band-grid .band-checkbox-item input:checked').length;
-    const totalChecked = lteChecked + wcdmaChecked;
-    const totalBands = ALL_LTE_BANDS.length + ALL_WCDMA_BANDS.length;
+    const totalChecked = lteChecked;
+    const totalBands = ALL_LTE_BANDS.length;
 
     const statusEl = document.getElementById('band-status-text');
     if (!statusEl) return;
@@ -473,12 +480,10 @@ const Network = (() => {
   }
 
   /**
-   * Update the band lock badge based on parsed GTACT response
+   * Update the band lock badge based on parsed SLBAND response
    */
-  function updateBandLockBadge(parsed) {
-    if (!parsed) return;
-
-    if (parsed.isAllBands || parsed.allBands.length === 0) {
+  function updateBandLockBadge(selectedBands) {
+    if (!selectedBands || selectedBands.length === 0 || selectedBands.length >= ALL_LTE_BANDS.length) {
       setBandBadge('Unlocked', 'badge-gray');
     } else {
       setBandBadge('Locked', 'badge-yellow');
@@ -515,10 +520,12 @@ const Network = (() => {
     setAPN,
     scanOperators,
     selectOperator,
-    setRadio,
+    refreshIP,
+    checkIP,
     readBands,
     readCurrentBands,
     applyBandLock,
+    applyPriorityBands,
     resetAllBands,
     toggleAllBands
   };

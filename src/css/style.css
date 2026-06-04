@@ -461,6 +461,11 @@ body {
   color: var(--accent-primary);
 }
 
+.badge-purple {
+  background: rgba(168, 85, 247, 0.15);
+  color: #a855f7;
+}
+
 /* ─── Info List ────────────────────────────────────────────────────────────── */
 .info-list {
   display: flex;
@@ -993,6 +998,231 @@ body {
 .chart-container canvas {
   width: 100% !important;
   height: 100% !important;
+}
+
+/* Band Signal Details */
+.card-band-signal {
+  overflow: hidden;
+}
+
+.band-detail-header-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.band-signal-body {
+  padding: 0 !important;
+}
+
+.band-signal-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 32px 20px;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.band-signal-row {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border-color);
+  transition: background 0.2s ease;
+}
+
+.animate-band-row {
+  animation: bandRowIn 0.3s ease forwards;
+}
+
+.band-signal-row:last-child {
+  border-bottom: none;
+}
+
+.band-signal-row:hover {
+  background: rgba(0, 212, 255, 0.02);
+}
+
+@keyframes bandRowIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Band Row Header */
+.band-row-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.band-type-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  flex-shrink: 0;
+}
+
+.band-type-badge.pcc {
+  background: rgba(0, 212, 255, 0.15);
+  color: var(--accent-primary);
+  border: 1px solid rgba(0, 212, 255, 0.25);
+}
+
+.band-type-badge.scc {
+  background: rgba(168, 85, 247, 0.15);
+  color: #a855f7;
+  border: 1px solid rgba(168, 85, 247, 0.25);
+}
+
+.band-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.band-name small {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--text-muted);
+  margin-left: 4px;
+}
+
+.band-row-meta {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+}
+
+.band-row-meta span {
+  white-space: nowrap;
+}
+
+/* Band Signal Metrics */
+.band-signal-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.band-metric {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: var(--radius-sm);
+}
+
+.band-metric-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.band-metric-value {
+  font-family: var(--font-mono);
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.band-metric-unit {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-weight: 400;
+}
+
+/* Signal Quality Colors */
+.band-metric-value.excellent { color: var(--accent-primary); }
+.band-metric-value.good { color: var(--color-success); }
+.band-metric-value.fair { color: var(--color-warning); }
+.band-metric-value.weak { color: var(--color-danger); }
+.band-metric-value.very-weak { color: #dc2626; }
+.band-metric-value.none { color: var(--text-muted); }
+
+/* RSRP Bar */
+.band-rsrp-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.band-rsrp-bar-track {
+  flex: 1;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.band-rsrp-bar-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1), background 0.4s ease;
+  position: relative;
+}
+
+.band-rsrp-bar-fill::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  top: -1px;
+  width: 2px;
+  height: 6px;
+  border-radius: 1px;
+  background: inherit;
+  filter: brightness(1.3);
+}
+
+.band-rsrp-label {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  min-width: 60px;
+  text-align: right;
+}
+
+/* Band unsupported state */
+.band-signal-unsupported {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 32px 20px;
+  color: var(--text-muted);
+  font-size: 13px;
+  text-align: center;
+}
+
+.band-signal-unsupported code {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  background: rgba(255, 255, 255, 0.04);
+  padding: 2px 8px;
+  border-radius: 4px;
 }
 
 /* ─── Terminal Page ────────────────────────────────────────────────────────── */

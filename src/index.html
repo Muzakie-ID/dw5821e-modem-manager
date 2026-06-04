@@ -81,12 +81,7 @@
           </svg>
           <span>SMS</span>
         </button>
-        <button id="nav-dial" class="nav-item" data-page="dial">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/>
-          </svg>
-          <span>Dial</span>
-        </button>
+
         <button id="nav-terminal" class="nav-item" data-page="terminal">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <polyline points="4 17 10 11 4 5"/>
@@ -248,6 +243,14 @@
                   <span class="info-label">APN</span>
                   <span id="dash-apn" class="info-value">--</span>
                 </div>
+                <div class="info-item">
+                  <span class="info-label">Active Band</span>
+                  <span id="dash-active-band" class="info-value">--</span>
+                </div>
+                <div class="info-item">
+                  <span class="info-label">Bandwidth</span>
+                  <span id="dash-bandwidth" class="info-value">--</span>
+                </div>
               </div>
             </div>
           </div>
@@ -296,6 +299,14 @@
                   <span class="info-label">Firmware</span>
                   <span id="dash-firmware" class="info-value">--</span>
                 </div>
+                <div class="info-item">
+                  <span class="info-label">Category</span>
+                  <span id="dash-cat" class="info-value">--</span>
+                </div>
+                <div class="info-item">
+                  <span class="info-label">Customer</span>
+                  <span id="dash-customer" class="info-value">--</span>
+                </div>
               </div>
             </div>
           </div>
@@ -314,14 +325,12 @@
                   </svg>
                   <span>Refresh All</span>
                 </button>
-                <button id="btn-toggle-radio" class="action-btn" onclick="Dashboard.toggleRadio()">
+
+                <button id="btn-check-error" class="action-btn" onclick="Dashboard.checkError()">
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M5 12.55a11 11 0 0 1 14.08 0"/>
-                    <path d="M1.42 9a16 16 0 0 1 21.16 0"/>
-                    <path d="M8.53 16.11a6 6 0 0 1 6.95 0"/>
-                    <circle cx="12" cy="20" r="1" fill="currentColor"/>
+                    <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
                   </svg>
-                  <span>Toggle Radio</span>
+                  <span>Check Error</span>
                 </button>
                 <button id="btn-restart-modem" class="action-btn" onclick="Dashboard.restartModem()">
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -329,11 +338,11 @@
                   </svg>
                   <span>Restart Modem</span>
                 </button>
-                <button id="btn-scan-networks" class="action-btn" onclick="Network.scanOperators()">
+                <button id="btn-refresh-ip-quick" class="action-btn" onclick="Network.refreshIP()">
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                    <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.32-9.26l5.08-5.08"/>
                   </svg>
-                  <span>Scan Networks</span>
+                  <span>Refresh IP</span>
                 </button>
               </div>
             </div>
@@ -381,7 +390,7 @@
           </div>
 
           <!-- Operator Selection -->
-          <div class="card glass-card">
+          <div class="card glass-card" style="display: none;">
             <div class="card-header">
               <h3>Operator Selection</h3>
               <button id="btn-scan-ops" class="btn btn-sm" onclick="Network.scanOperators()">
@@ -409,32 +418,26 @@
             </div>
           </div>
 
-          <!-- Radio Control -->
+          <!-- IP & Connection -->
           <div class="card glass-card">
             <div class="card-header">
-              <h3>Radio Control</h3>
+              <h3>IP & Connection</h3>
             </div>
             <div class="card-body">
               <div class="radio-control">
                 <div class="radio-status">
-                  <span class="info-label">Radio Status</span>
-                  <div id="radio-status-indicator" class="status-pill status-unknown">Unknown</div>
+                  <span class="info-label">Public IP Address</span>
+                  <div id="public-ip-address" class="status-pill status-unknown" style="user-select: text; font-family: monospace; font-size: 1.1em; padding: 6px 12px;">Checking...</div>
                 </div>
                 <div class="radio-actions">
-                  <button id="btn-radio-on" class="btn btn-primary" onclick="Network.setRadio(1)">
+                  <button id="btn-refresh-ip" class="btn btn-primary" onclick="Network.refreshIP()">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <path d="M5 12.55a11 11 0 0 1 14.08 0"/>
-                      <circle cx="12" cy="20" r="1" fill="currentColor"/>
+                      <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.32-9.26l5.08-5.08"/>
                     </svg>
-                    Enable Radio
+                    Refresh IP (AT+CFUN=4)
                   </button>
-                  <button id="btn-radio-off" class="btn btn-outline" onclick="Network.setRadio(0)">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <line x1="1" y1="1" x2="23" y2="23"/>
-                      <path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55"/>
-                      <path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39"/>
-                    </svg>
-                    Disable Radio
+                  <button id="btn-check-ip" class="btn btn-outline" onclick="Network.checkIP()">
+                    Check IP
                   </button>
                 </div>
               </div>
@@ -474,12 +477,9 @@
                 </div>
                 <div class="band-toolbar-right">
                   <div class="form-group-inline">
-                    <label for="band-rat-mode">RAT Mode</label>
-                    <select id="band-rat-mode" class="input input-sm">
-                      <option value="2">Auto (LTE Preferred)</option>
-                      <option value="14">LTE Only</option>
-                      <option value="13">3G Only</option>
-                    </select>
+                    <label for="priority-bands">Priority Bands</label>
+                    <input type="text" id="priority-bands" class="input input-sm" placeholder="e.g. 1,3,5,40" title="AT^BAND_PRI Priority Bands">
+                    <button class="btn btn-sm btn-primary" onclick="Network.applyPriorityBands()">Set Priority</button>
                   </div>
                 </div>
               </div>
@@ -523,30 +523,11 @@
                   <label class="band-checkbox-item" data-band="41" data-type="lte"><input type="checkbox" value="41"><span class="band-check-mark"></span><span class="band-label">B41<small>2500T</small></span></label>
                   <label class="band-checkbox-item" data-band="42" data-type="lte"><input type="checkbox" value="42"><span class="band-check-mark"></span><span class="band-label">B42<small>3500</small></span></label>
                   <label class="band-checkbox-item" data-band="43" data-type="lte"><input type="checkbox" value="43"><span class="band-check-mark"></span><span class="band-label">B43<small>3700</small></span></label>
+                  <label class="band-checkbox-item" data-band="46" data-type="lte"><input type="checkbox" value="46"><span class="band-check-mark"></span><span class="band-label">B46<small>5200</small></span></label>
                   <label class="band-checkbox-item" data-band="66" data-type="lte"><input type="checkbox" value="66"><span class="band-check-mark"></span><span class="band-label">B66<small>AWS+</small></span></label>
                 </div>
               </div>
 
-              <!-- 3G/WCDMA Bands -->
-              <div class="band-group">
-                <div class="band-group-header">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M2 20h.01"/><path d="M7 20v-4"/><path d="M12 20v-8"/>
-                  </svg>
-                  <span>3G / WCDMA Bands</span>
-                  <span id="wcdma-band-count" class="band-count">0 / 8 selected</span>
-                </div>
-                <div id="wcdma-band-grid" class="band-grid">
-                  <label class="band-checkbox-item" data-band="1" data-type="wcdma"><input type="checkbox" value="1"><span class="band-check-mark"></span><span class="band-label">B1<small>2100</small></span></label>
-                  <label class="band-checkbox-item" data-band="2" data-type="wcdma"><input type="checkbox" value="2"><span class="band-check-mark"></span><span class="band-label">B2<small>1900</small></span></label>
-                  <label class="band-checkbox-item" data-band="4" data-type="wcdma"><input type="checkbox" value="4"><span class="band-check-mark"></span><span class="band-label">B4<small>AWS</small></span></label>
-                  <label class="band-checkbox-item" data-band="5" data-type="wcdma"><input type="checkbox" value="5"><span class="band-check-mark"></span><span class="band-label">B5<small>850</small></span></label>
-                  <label class="band-checkbox-item" data-band="6" data-type="wcdma"><input type="checkbox" value="6"><span class="band-check-mark"></span><span class="band-label">B6<small>800</small></span></label>
-                  <label class="band-checkbox-item" data-band="8" data-type="wcdma"><input type="checkbox" value="8"><span class="band-check-mark"></span><span class="band-label">B8<small>900</small></span></label>
-                  <label class="band-checkbox-item" data-band="9" data-type="wcdma"><input type="checkbox" value="9"><span class="band-check-mark"></span><span class="band-label">B9<small>1700</small></span></label>
-                  <label class="band-checkbox-item" data-band="19" data-type="wcdma"><input type="checkbox" value="19"><span class="band-check-mark"></span><span class="band-label">B19<small>800</small></span></label>
-                </div>
-              </div>
 
               <!-- Status Bar & Apply -->
               <div class="band-status-bar">
@@ -572,7 +553,7 @@
           <span class="page-subtitle">Real-time signal quality tracking</span>
           <div class="page-actions">
             <label class="toggle-label">
-              <input type="checkbox" id="signal-auto-refresh" onchange="Signal.toggleAutoRefresh(this.checked)">
+              <input type="checkbox" id="signal-auto-refresh" onchange="Signal.toggleAutoRefresh(this.checked)" checked>
               <span class="toggle-slider"></span>
               <span>Auto Refresh</span>
             </label>
@@ -607,6 +588,25 @@
               <div class="metric-label">SINR</div>
               <div id="metric-sinr" class="metric-value">--</div>
               <div class="metric-unit">dB</div>
+            </div>
+          </div>
+
+          <!-- Band Signal Details -->
+          <div class="card glass-card card-band-signal">
+            <div class="card-header">
+              <h3>Band Details</h3>
+              <div class="band-detail-header-right">
+                <div id="band-signal-ca-badge" class="badge badge-gray hidden">CA</div>
+                <div id="band-signal-status" class="badge badge-gray">Waiting</div>
+              </div>
+            </div>
+            <div id="band-signal-body" class="card-body band-signal-body">
+              <div class="band-signal-empty">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.3">
+                  <path d="M2 20h.01"/><path d="M7 20v-4"/><path d="M12 20v-8"/><path d="M17 20v-12"/><path d="M22 20v-16"/>
+                </svg>
+                <span class="text-muted">Enable auto-refresh to see band details</span>
+              </div>
             </div>
           </div>
 
@@ -769,100 +769,6 @@
         </div>
       </section>
 
-      <!-- ─── Dial / USSD Page ──────────────────────────────────────── -->
-      <section id="page-dial" class="page">
-        <div class="page-header">
-          <h1>Dial / USSD</h1>
-          <span class="page-subtitle">Execute USSD codes & check balance</span>
-        </div>
-
-        <div class="dial-layout">
-          <!-- Left Column: Dial Pad + Response -->
-          <div class="dial-main">
-            <!-- Dial Input -->
-            <div class="dial-input-card glass-card">
-              <div class="dial-input-row">
-                <input type="text" id="dial-input" class="input dial-code-input" placeholder="*123#" autocomplete="off" spellcheck="false">
-                <button id="dial-btn-execute" class="dial-btn-execute" onclick="Dial.dialCode()" title="Dial">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/>
-                  </svg>
-                </button>
-                <button id="dial-btn-cancel" class="btn btn-danger btn-sm hidden" onclick="Dial.cancelSession()">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-                  </svg>
-                  End
-                </button>
-              </div>
-            </div>
-
-            <!-- Response Panel -->
-            <div id="dial-response-panel" class="dial-response-panel glass-card hidden">
-              <div class="card-header">
-                <h3>Response</h3>
-                <span id="dial-response-status" class="dial-status-badge"></span>
-              </div>
-              <div id="dial-response-loader" class="loading-overlay hidden">
-                <div class="spinner"></div>
-                <span>Waiting for response...</span>
-              </div>
-              <div id="dial-response-empty" class="dial-response-empty hidden">
-                <span class="text-muted">No response received</span>
-              </div>
-              <div id="dial-response-content" class="card-body">
-                <pre id="dial-response-text" class="dial-response-text"></pre>
-              </div>
-              <!-- Reply Section (for interactive sessions) -->
-              <div id="dial-reply-section" class="dial-reply-section hidden">
-                <div class="dial-reply-row">
-                  <input type="text" id="dial-reply-input" class="input" placeholder="Enter reply (e.g. 1, 2, 3...)">
-                  <button class="btn btn-primary btn-sm" onclick="Dial.sendReply()">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
-                    </svg>
-                    Reply
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            <!-- Quick Dial Presets -->
-            <div class="dial-presets glass-card">
-              <div class="card-header">
-                <h3>Quick Dial</h3>
-              </div>
-              <div id="dial-presets-grid" class="dial-presets-grid"></div>
-              <!-- Add Custom Preset -->
-              <div class="dial-custom-form">
-                <input type="text" id="dial-custom-code" class="input input-sm" placeholder="*123#">
-                <input type="text" id="dial-custom-label" class="input input-sm" placeholder="Label">
-                <button class="btn btn-primary btn-sm" onclick="Dial.addCustomPreset()">
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-                  </svg>
-                  Add
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <!-- Right Column: History -->
-          <div class="dial-sidebar">
-            <div class="dial-history glass-card">
-              <div class="card-header">
-                <h3>History</h3>
-                <button class="btn btn-sm" onclick="Dial.clearHistory()">Clear</button>
-              </div>
-              <div id="dial-history-list" class="dial-history-list">
-                <div class="dial-history-empty">
-                  <span class="text-muted">No history yet</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
 
       <!-- ─── Terminal Page ───────────────────────────────────────────── -->
       <section id="page-terminal" class="page">
@@ -880,18 +786,18 @@
             <span>Quick Commands</span>
           </div>
           <div class="quick-commands-list">
-            <button class="quick-cmd" onclick="Terminal.sendQuick('AT')">AT</button>
             <button class="quick-cmd" onclick="Terminal.sendQuick('ATI')">ATI</button>
-            <button class="quick-cmd" onclick="Terminal.sendQuick('AT+CSQ')">Signal</button>
-            <button class="quick-cmd" onclick="Terminal.sendQuick('AT+CREG?')">Reg Status</button>
-            <button class="quick-cmd" onclick="Terminal.sendQuick('AT+COPS?')">Operator</button>
-            <button class="quick-cmd" onclick="Terminal.sendQuick('AT+CPIN?')">SIM Status</button>
-            <button class="quick-cmd" onclick="Terminal.sendQuick('AT+CGSN')">IMEI</button>
-            <button class="quick-cmd" onclick="Terminal.sendQuick('AT+CIMI')">IMSI</button>
+            <button class="quick-cmd" onclick="Terminal.sendQuick('AT^RSSI?')">RSSI</button>
+            <button class="quick-cmd" onclick="Terminal.sendQuick('AT$QCRSRP?')">RSRP</button>
+            <button class="quick-cmd" onclick="Terminal.sendQuick('AT^CA_INFO?')">CA Info</button>
+            <button class="quick-cmd" onclick="Terminal.sendQuick('AT^ABAND?')">Active Band</button>
+            <button class="quick-cmd" onclick="Terminal.sendQuick('AT^SLBAND?')">Selected Band</button>
+            <button class="quick-cmd" onclick="Terminal.sendQuick('AT^BAND_PRI?')">Priority Band</button>
+            <button class="quick-cmd" onclick="Terminal.sendQuick('AT^TEMP?')">Temperature</button>
+            <button class="quick-cmd" onclick="Terminal.sendQuick('AT+CEER')">Error Check</button>
+            <button class="quick-cmd" onclick="Terminal.sendQuick('AT+CFUN?')">Radio Status</button>
             <button class="quick-cmd" onclick="Terminal.sendQuick('AT+CGDCONT?')">APN</button>
-            <button class="quick-cmd" onclick="Terminal.sendQuick('AT+CGMR')">Firmware</button>
-            <button class="quick-cmd" onclick="Terminal.sendQuick('AT+CFUN?')">Radio</button>
-            <button class="quick-cmd" onclick="Terminal.sendQuick('AT+CGMM')">Model</button>
+            <button class="quick-cmd" onclick="Terminal.sendQuick('AT^GETLTECAT?')">LTE Cat</button>
           </div>
         </div>
 
@@ -998,6 +904,26 @@
           </div>
 
           <div class="card glass-card">
+            <div class="card-header"><h3>Hardware Sensors</h3></div>
+            <div class="card-body">
+              <div class="info-list">
+                <div class="info-item">
+                  <span class="info-label">Temperature</span>
+                  <span id="dev-temp" class="info-value">--</span>
+                </div>
+                <div class="info-item">
+                  <span class="info-label">Voltage</span>
+                  <span id="dev-volt" class="info-value">--</span>
+                </div>
+                <div class="info-item">
+                  <span class="info-label">USB Type</span>
+                  <span id="dev-usb" class="info-value">--</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card glass-card">
             <div class="card-header"><h3>SIM Card</h3></div>
             <div class="card-body">
               <div class="info-list">
@@ -1028,7 +954,7 @@
   <script src="js/terminal.js"></script>
   <script src="js/network.js"></script>
   <script src="js/sms.js"></script>
-  <script src="js/dial.js"></script>
+
   <script src="js/app.js"></script>
 </body>
 </html>
